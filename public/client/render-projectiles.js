@@ -1,4 +1,4 @@
-(function initVibeClientRenderProjectiles(globalScope) {
+(function initOpen2dClientRenderProjectiles(globalScope) {
   "use strict";
 
   function createProjectileRenderTools(rawDeps) {
@@ -227,7 +227,7 @@
         return sprite;
       }
       try {
-        sprite.__vibeSpriteKey = String(key || "");
+        sprite.__open2dSpriteKey = String(key || "");
       } catch (_error) {
         // Canvas tagging is best-effort only.
       }
@@ -1141,7 +1141,7 @@
     };
   }
 
-  globalScope.VibeClientRenderProjectiles = Object.freeze({
+  globalScope.Open2dClientRenderProjectiles = Object.freeze({
     createProjectileRenderTools
   });
 })(globalThis);

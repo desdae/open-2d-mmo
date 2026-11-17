@@ -11,20 +11,20 @@ async function loadSharedGlobal(modulePath, globalName) {
 }
 
 async function bootstrapClient() {
-  await loadSharedGlobal("./shared/protocol.js", "VibeProtocol");
-  await loadSharedGlobal("./shared/protocol-codecs.js", "VibeProtocolCodecs");
-  await loadSharedGlobal("./shared/ability-id-hash.js", "VibeAbilityIdHash");
-  await loadSharedGlobal("./shared/ability-visuals.js", "VibeAbilityVisualRegistry");
-  await loadSharedGlobal("./shared/vector-utils.js", "VibeVectorUtils");
-  await loadSharedGlobal("./shared/number-utils.js", "VibeNumberUtils");
-  await loadSharedGlobal("./shared/object-utils.js", "VibeObjectUtils");
-  await loadSharedGlobal("./shared/ability-stats.js", "VibeAbilityStats");
-  await loadSharedGlobal("./shared/summon-layout.js", "VibeSummonLayout");
-  await loadSharedGlobal("./shared/town-layout.js", "VibeTownLayout");
-  await loadSharedGlobal("./shared/item-value.js", "VibeItemValue");
-  await loadSharedGlobal("./shared/ability-normalization.js", "VibeAbilityNormalization");
-  await loadSharedGlobal("./shared/humanoid-style.js", "VibeHumanoidStyle");
-  await loadSharedGlobal("./shared/mob-render-style.js", "VibeMobRenderStyle");
+  await loadSharedGlobal("./shared/protocol.js", "Open2dProtocol");
+  await loadSharedGlobal("./shared/protocol-codecs.js", "Open2dProtocolCodecs");
+  await loadSharedGlobal("./shared/ability-id-hash.js", "Open2dAbilityIdHash");
+  await loadSharedGlobal("./shared/ability-visuals.js", "Open2dAbilityVisualRegistry");
+  await loadSharedGlobal("./shared/vector-utils.js", "Open2dVectorUtils");
+  await loadSharedGlobal("./shared/number-utils.js", "Open2dNumberUtils");
+  await loadSharedGlobal("./shared/object-utils.js", "Open2dObjectUtils");
+  await loadSharedGlobal("./shared/ability-stats.js", "Open2dAbilityStats");
+  await loadSharedGlobal("./shared/summon-layout.js", "Open2dSummonLayout");
+  await loadSharedGlobal("./shared/town-layout.js", "Open2dTownLayout");
+  await loadSharedGlobal("./shared/item-value.js", "Open2dItemValue");
+  await loadSharedGlobal("./shared/ability-normalization.js", "Open2dAbilityNormalization");
+  await loadSharedGlobal("./shared/humanoid-style.js", "Open2dHumanoidStyle");
+  await loadSharedGlobal("./shared/mob-render-style.js", "Open2dMobRenderStyle");
 
   const clientModuleLoaders = [
     () => import("./client/canvas-coordinates.js"),

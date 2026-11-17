@@ -32,25 +32,25 @@ function startServer() {
 }
 
 async function getState(page) {
-  return page.evaluate(() => window.__vibemmoTest.getState());
+  return page.evaluate(() => window.__open2dmmoTest.getState());
 }
 
 async function joinGame(page) {
   await page.goto(SERVER_URL, { waitUntil: "networkidle" });
-  await page.waitForFunction(() => window.__vibemmoTest && document.querySelector("#classType option[value]"));
+  await page.waitForFunction(() => window.__open2dmmoTest && document.querySelector("#classType option[value]"));
   await page.fill("#name", "pw-channel-move");
   await page.selectOption("#classType", "mage");
   await page.check("#isAdmin");
   await page.click("#join-form button[type='submit']");
-  await page.waitForFunction(() => !!(window.__vibemmoTest.getState() || {}).self);
-  await page.evaluate(() => window.__vibemmoTest.send({ type: "admin_set_level", level: 10 }));
-  await page.waitForFunction(() => Number((window.__vibemmoTest.getState().self || {}).level) >= 10);
+  await page.waitForFunction(() => !!(window.__open2dmmoTest.getState() || {}).self);
+  await page.evaluate(() => window.__open2dmmoTest.send({ type: "admin_set_level", level: 10 }));
+  await page.waitForFunction(() => Number((window.__open2dmmoTest.getState().self || {}).level) >= 10);
   for (let index = 0; index < 4; index += 1) {
-    await page.evaluate(() => window.__vibemmoTest.send({ type: "level_up_ability", abilityId: "lightningBeam" }));
+    await page.evaluate(() => window.__open2dmmoTest.send({ type: "level_up_ability", abilityId: "lightningBeam" }));
     await sleep(80);
   }
   await page.waitForFunction(() => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return !!(state.self && state.self.abilityLevels && Number(state.self.abilityLevels.lightningBeam) >= 5);
   });
 }
@@ -66,23 +66,23 @@ async function main() {
     await joinGame(page);
 
     await page.evaluate(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       const self = state.self;
       if (!self) {
         return false;
       }
-      return window.__vibemmoTest.castAtWorld("lightningBeam", Number(self.x) + 8, Number(self.y));
+      return window.__open2dmmoTest.castAtWorld("lightningBeam", Number(self.x) + 8, Number(self.y));
     });
 
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return !!(state.castChannel && state.castChannel.active && state.castChannel.abilityId === "lightningBeam");
     });
 
-    await page.evaluate(() => window.__vibemmoTest.setMove(1, 0));
+    await page.evaluate(() => window.__open2dmmoTest.setMove(1, 0));
 
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return !!(state.castChannel && state.castChannel.active === false);
     });
 

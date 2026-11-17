@@ -1,4 +1,4 @@
-(function initVibeClientUiPresentation(globalScope) {
+(function initOpen2dClientUiPresentation(globalScope) {
   "use strict";
 
   function createUiPresentationTools(rawDeps) {
@@ -130,7 +130,7 @@
     };
   }
 
-  globalScope.VibeClientUiPresentation = Object.freeze({
+  globalScope.Open2dClientUiPresentation = Object.freeze({
     createUiPresentationTools
   });
 })(globalThis);

@@ -44,16 +44,16 @@ function createMockSurfaceContext(metrics, bucket) {
   };
 }
 
-describe("VibeClientCanvasBackgroundCache", () => {
+describe("Open2dClientCanvasBackgroundCache", () => {
   const modulePath = path.resolve(__dirname, "../../public/client/canvas-background-cache.js");
 
   beforeEach(() => {
     jest.resetModules();
-    delete globalThis.VibeClientCanvasBackgroundCache;
+    delete globalThis.Open2dClientCanvasBackgroundCache;
   });
 
   afterEach(() => {
-    delete globalThis.VibeClientCanvasBackgroundCache;
+    delete globalThis.Open2dClientCanvasBackgroundCache;
   });
 
   test("caches the prerendered town surface across frames", () => {
@@ -73,7 +73,7 @@ describe("VibeClientCanvasBackgroundCache", () => {
     const wallTiles = [{ x: 0, y: 0 }];
     let spriteLookups = 0;
     let surfacesCreated = 0;
-    const cache = globalThis.VibeClientCanvasBackgroundCache.createCanvasBackgroundCache({
+    const cache = globalThis.Open2dClientCanvasBackgroundCache.createCanvasBackgroundCache({
       ctx: {
         ...createMockSurfaceContext(metrics, "main"),
         createPattern: () => ({ kind: "grid" })
@@ -114,7 +114,7 @@ describe("VibeClientCanvasBackgroundCache", () => {
     require(modulePath);
 
     let createPatternCalls = 0;
-    const cache = globalThis.VibeClientCanvasBackgroundCache.createCanvasBackgroundCache({
+    const cache = globalThis.Open2dClientCanvasBackgroundCache.createCanvasBackgroundCache({
       ctx: {
         ...createMockSurfaceContext(
           {

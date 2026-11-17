@@ -1,4 +1,4 @@
-(function initVibeClientCanvasWorldRenderer(globalScope) {
+(function initOpen2dClientCanvasWorldRenderer(globalScope) {
   "use strict";
 
   function createCanvasWorldRenderer(rawDeps) {
@@ -176,7 +176,7 @@
     };
   }
 
-  globalScope.VibeClientCanvasWorldRenderer = Object.freeze({
+  globalScope.Open2dClientCanvasWorldRenderer = Object.freeze({
     createCanvasWorldRenderer
   });
 })(globalThis);

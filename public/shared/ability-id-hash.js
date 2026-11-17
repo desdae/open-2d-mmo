@@ -4,7 +4,7 @@
     return;
   }
   const root = typeof globalThis !== "undefined" ? globalThis : window;
-  root.VibeAbilityIdHash = rootFactory();
+  root.Open2dAbilityIdHash = rootFactory();
 })(function buildAbilityIdHashTools() {
   function fallbackHashString32(value) {
     const input = String(value || "");

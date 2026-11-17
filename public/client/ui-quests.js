@@ -1,4 +1,4 @@
-(function initVibeClientQuestUi(globalScope) {
+(function initOpen2dClientQuestUi(globalScope) {
   "use strict";
 
   function createQuestUiTools(rawDeps) {
@@ -481,5 +481,5 @@
     };
   }
 
-  globalScope.__vibemmoCreateQuestUiTools = createQuestUiTools;
+  globalScope.__open2dmmoCreateQuestUiTools = createQuestUiTools;
 })(typeof window !== "undefined" ? window : global);

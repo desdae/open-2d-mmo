@@ -1,21 +1,21 @@
 const path = require("path");
 
-describe("VibeClientCanvasCoordinates", () => {
+describe("Open2dClientCanvasCoordinates", () => {
   const modulePath = path.resolve(__dirname, "../../public/client/canvas-coordinates.js");
 
   beforeEach(() => {
     jest.resetModules();
-    delete globalThis.VibeClientCanvasCoordinates;
+    delete globalThis.Open2dClientCanvasCoordinates;
   });
 
   afterEach(() => {
-    delete globalThis.VibeClientCanvasCoordinates;
+    delete globalThis.Open2dClientCanvasCoordinates;
   });
 
   test("maps client touch positions across the full scaled canvas width", () => {
     require(modulePath);
 
-    const tools = globalThis.VibeClientCanvasCoordinates;
+    const tools = globalThis.Open2dClientCanvasCoordinates;
     const canvas = {
       width: 1080,
       height: 2400,
@@ -39,7 +39,7 @@ describe("VibeClientCanvasCoordinates", () => {
   test("falls back to raw coordinates when canvas metrics are unavailable", () => {
     require(modulePath);
 
-    const tools = globalThis.VibeClientCanvasCoordinates;
+    const tools = globalThis.Open2dClientCanvasCoordinates;
     const point = tools.clientPointToCanvasPoint(null, 123, 456);
 
     expect(point).toEqual({ x: 123, y: 456 });
@@ -48,7 +48,7 @@ describe("VibeClientCanvasCoordinates", () => {
   test("reports the visible canvas center in client coordinates for scaled mobile layouts", () => {
     require(modulePath);
 
-    const tools = globalThis.VibeClientCanvasCoordinates;
+    const tools = globalThis.Open2dClientCanvasCoordinates;
     const canvas = {
       width: 1080,
       height: 2400,

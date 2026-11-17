@@ -1,4 +1,4 @@
-(function initVibeClientRenderMobs(globalScope) {
+(function initOpen2dClientRenderMobs(globalScope) {
   "use strict";
 
   function createMobRenderTools(rawDeps) {
@@ -492,7 +492,7 @@
     };
   }
 
-  globalScope.VibeClientRenderMobs = Object.freeze({
+  globalScope.Open2dClientRenderMobs = Object.freeze({
     createMobRenderTools
   });
 })(globalThis);

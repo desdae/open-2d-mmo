@@ -75,7 +75,7 @@ function startServer() {
 }
 
 async function getState(page) {
-  return page.evaluate(() => window.__vibemmoTest.getState());
+  return page.evaluate(() => window.__open2dmmoTest.getState());
 }
 
 async function searchForVisibleMobs(page) {
@@ -96,9 +96,9 @@ async function searchForVisibleMobs(page) {
       return snapshot;
     }
     const dir = directions[step % directions.length];
-    await page.evaluate((moveDir) => window.__vibemmoTest.setMove(moveDir.dx, moveDir.dy), dir);
+    await page.evaluate((moveDir) => window.__open2dmmoTest.setMove(moveDir.dx, moveDir.dy), dir);
     await sleep(SEARCH_STEP_MS);
-    await page.evaluate(() => window.__vibemmoTest.stopMove());
+    await page.evaluate(() => window.__open2dmmoTest.stopMove());
     await sleep(150);
   }
 
@@ -133,7 +133,7 @@ async function killNearestMob(page) {
     if (!target) {
       continue;
     }
-    await page.evaluate((payload) => window.__vibemmoTest.castAtWorld("fireball", payload.x, payload.y), {
+    await page.evaluate((payload) => window.__open2dmmoTest.castAtWorld("fireball", payload.x, payload.y), {
       x: target.x,
       y: target.y
     });
@@ -158,7 +158,7 @@ async function moveToNearestBagAndLoot(page) {
     const dir = normalizeDirection(bag.x - snapshot.self.x, bag.y - snapshot.self.y);
     const dist = Math.hypot(bag.x - snapshot.self.x, bag.y - snapshot.self.y);
     if (dist <= 2.25 || !dir) {
-      await page.evaluate(() => window.__vibemmoTest.pickupNearestBag());
+      await page.evaluate(() => window.__open2dmmoTest.pickupNearestBag());
       await sleep(550);
       const nextSnapshot = await getState(page);
       if (nextSnapshot.inventory.some((slot) => slot && slot.isEquipment)) {
@@ -167,10 +167,10 @@ async function moveToNearestBagAndLoot(page) {
       continue;
     }
 
-    await page.evaluate((moveDir) => window.__vibemmoTest.setMove(moveDir.dx, moveDir.dy), dir);
+    await page.evaluate((moveDir) => window.__open2dmmoTest.setMove(moveDir.dx, moveDir.dy), dir);
     await sleep(PICKUP_STEP_MS + 200);
-    await page.evaluate(() => window.__vibemmoTest.stopMove());
-    await page.evaluate(() => window.__vibemmoTest.pickupNearestBag());
+    await page.evaluate(() => window.__open2dmmoTest.stopMove());
+    await page.evaluate(() => window.__open2dmmoTest.pickupNearestBag());
     await sleep(100);
   }
 
@@ -217,7 +217,7 @@ async function equipFirstEquipmentItem(page) {
 
 async function grantEquipmentItem(page, { minAffixes = 1 } = {}) {
   await page.evaluate((minAffixesValue) => {
-    window.__vibemmoTest.send({
+    window.__open2dmmoTest.send({
       type: "admin_grant_equipment_item",
       minAffixes: minAffixesValue
     });
@@ -268,7 +268,7 @@ async function assertNoDuplicateTooltipAffixes(page, inventoryIndex) {
   await page.waitForSelector("#hover-tooltip:not(.hidden)");
 
   const result = await page.evaluate((slotIndex) => {
-    const slotData = window.__vibemmoTest.getState().inventory[slotIndex];
+    const slotData = window.__open2dmmoTest.getState().inventory[slotIndex];
     const tooltipEl = document.querySelector("#hover-tooltip");
     const tooltipAffixEls = tooltipEl ? Array.from(tooltipEl.querySelectorAll(".tooltip-affix")) : [];
     const sourceAffixes = Array.isArray(slotData && slotData.affixes)
@@ -312,13 +312,13 @@ async function run() {
     });
 
     await page.goto("http://127.0.0.1:3000/", { waitUntil: "networkidle" });
-    await page.waitForFunction(() => window.__vibemmoTest && document.querySelector("#classType option[value]"));
+    await page.waitForFunction(() => window.__open2dmmoTest && document.querySelector("#classType option[value]"));
     await page.fill("#name", "pw-mage");
     await page.selectOption("#classType", "mage");
     await page.check("#isAdmin");
     await page.click("#join-form button[type='submit']");
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest && window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest && window.__open2dmmoTest.getState();
       return !!(state && state.self);
     });
 

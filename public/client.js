@@ -213,12 +213,12 @@ const INVENTORY_SLOT_SIZE_PX = 42;
 const INVENTORY_SLOT_GAP_PX = 4;
 const INVENTORY_PANEL_PADDING_PX = 8;
 const INVENTORY_PANEL_BORDER_PX = 1;
-const sharedAbilityNormalization = globalThis.VibeAbilityNormalization || null;
+const sharedAbilityNormalization = globalThis.Open2dAbilityNormalization || null;
 const sharedCreateAbilityNormalizationTools =
   sharedAbilityNormalization && typeof sharedAbilityNormalization.createAbilityNormalizationTools === "function"
     ? sharedAbilityNormalization.createAbilityNormalizationTools
     : null;
-const sharedAbilityStats = globalThis.VibeAbilityStats || null;
+const sharedAbilityStats = globalThis.Open2dAbilityStats || null;
 const sharedGetAbilityDamageRange =
   sharedAbilityStats && typeof sharedAbilityStats.getAbilityDamageRange === "function"
     ? sharedAbilityStats.getAbilityDamageRange
@@ -231,12 +231,12 @@ const sharedGetAbilityCooldownMsForLevel =
   sharedAbilityStats && typeof sharedAbilityStats.getAbilityCooldownMsForLevel === "function"
     ? sharedAbilityStats.getAbilityCooldownMsForLevel
     : null;
-const sharedAbilityIdHash = globalThis.VibeAbilityIdHash || null;
+const sharedAbilityIdHash = globalThis.Open2dAbilityIdHash || null;
 const sharedRegisterAbilityIdHash =
   sharedAbilityIdHash && typeof sharedAbilityIdHash.registerAbilityIdHash === "function"
     ? sharedAbilityIdHash.registerAbilityIdHash
     : null;
-const sharedSummonLayout = globalThis.VibeSummonLayout || null;
+const sharedSummonLayout = globalThis.Open2dSummonLayout || null;
 const sharedGetSummonCountForLevel =
   sharedSummonLayout && typeof sharedSummonLayout.getSummonCountForLevel === "function"
     ? sharedSummonLayout.getSummonCountForLevel
@@ -274,43 +274,43 @@ const sharedComputeSummonFormationPositions =
         }
         return positions;
       };
-const sharedTownLayout = globalThis.VibeTownLayout || null;
+const sharedTownLayout = globalThis.Open2dTownLayout || null;
 const sharedIsTownWallTile =
   sharedTownLayout && typeof sharedTownLayout.isTownWallTile === "function" ? sharedTownLayout.isTownWallTile : null;
 const sharedIsTownGateTile =
   sharedTownLayout && typeof sharedTownLayout.isTownGateTile === "function" ? sharedTownLayout.isTownGateTile : null;
 const sharedGetTownWallTiles =
   sharedTownLayout && typeof sharedTownLayout.getTownWallTiles === "function" ? sharedTownLayout.getTownWallTiles : null;
-const sharedItemValue = globalThis.VibeItemValue || null;
+const sharedItemValue = globalThis.Open2dItemValue || null;
 const sharedGetItemCopperValue =
   sharedItemValue && typeof sharedItemValue.getItemCopperValue === "function" ? sharedItemValue.getItemCopperValue : null;
 const clientAbilityNormalizationTools = sharedCreateAbilityNormalizationTools
   ? sharedCreateAbilityNormalizationTools({ defaultProjectileHitRadius: 0.6 })
   : null;
-const sharedMobRenderStyle = globalThis.VibeMobRenderStyle || null;
+const sharedMobRenderStyle = globalThis.Open2dMobRenderStyle || null;
 const sharedParseMobRenderStyle =
   sharedMobRenderStyle && typeof sharedMobRenderStyle.parseMobRenderStyle === "function"
     ? sharedMobRenderStyle.parseMobRenderStyle
     : null;
-const sharedHumanoidStyle = globalThis.VibeHumanoidStyle || null;
+const sharedHumanoidStyle = globalThis.Open2dHumanoidStyle || null;
 const sharedParseHumanoidRenderStyle =
   sharedHumanoidStyle && typeof sharedHumanoidStyle.parseHumanoidRenderStyle === "function"
     ? sharedHumanoidStyle.parseHumanoidRenderStyle
     : null;
-const sharedNumberUtils = globalThis.VibeNumberUtils || null;
+const sharedNumberUtils = globalThis.Open2dNumberUtils || null;
 const sharedClamp =
   sharedNumberUtils && typeof sharedNumberUtils.clamp === "function" ? sharedNumberUtils.clamp : null;
-const sharedVectorUtils = globalThis.VibeVectorUtils || null;
+const sharedVectorUtils = globalThis.Open2dVectorUtils || null;
 const sharedNormalizeDirection =
   sharedVectorUtils && typeof sharedVectorUtils.normalizeDirection === "function"
     ? sharedVectorUtils.normalizeDirection
     : null;
-const sharedClientParticleSystem = globalThis.VibeClientParticleSystem || null;
+const sharedClientParticleSystem = globalThis.Open2dClientParticleSystem || null;
 const sharedCreateParticleSystemTools =
   sharedClientParticleSystem && typeof sharedClientParticleSystem.createParticleSystemTools === "function"
     ? sharedClientParticleSystem.createParticleSystemTools
     : null;
-const protocol = globalThis.VibeProtocol || {
+const protocol = globalThis.Open2dProtocol || {
   ENTITY_PROTO_TYPE: 1,
   ENTITY_PROTO_VERSION: 8,
   MOB_EFFECT_PROTO_TYPE: 2,
@@ -435,7 +435,7 @@ const {
   SELF_MODE_FULL,
   SELF_MODE_DELTA
 } = protocol;
-const sharedProtocolCodecs = globalThis.VibeProtocolCodecs || null;
+const sharedProtocolCodecs = globalThis.Open2dProtocolCodecs || null;
 const dequantizePos =
   sharedProtocolCodecs && typeof sharedProtocolCodecs.dequantizePos === "function"
     ? sharedProtocolCodecs.dequantizePos
@@ -534,7 +534,7 @@ const townClientState = {
   layout: null,
   wallTiles: []
 };
-const sharedCanvasBackgroundCacheModule = globalThis.VibeClientCanvasBackgroundCache || null;
+const sharedCanvasBackgroundCacheModule = globalThis.Open2dClientCanvasBackgroundCache || null;
 const createCanvasBackgroundCache =
   sharedCanvasBackgroundCacheModule &&
   typeof sharedCanvasBackgroundCacheModule.createCanvasBackgroundCache === "function"
@@ -1100,7 +1100,7 @@ function getPlayerVisualEquipment(player, isSelf) {
   return player && player.appearance && typeof player.appearance === "object" ? player.appearance : {};
 }
 
-const sharedClientRenderHumanoids = globalThis.VibeClientRenderHumanoids || null;
+const sharedClientRenderHumanoids = globalThis.Open2dClientRenderHumanoids || null;
 const sharedCreateHumanoidRenderTools =
   sharedClientRenderHumanoids && typeof sharedClientRenderHumanoids.createHumanoidRenderTools === "function"
     ? sharedClientRenderHumanoids.createHumanoidRenderTools
@@ -1116,7 +1116,7 @@ const humanoidRenderTools = sharedCreateHumanoidRenderTools
     })
   : null;
 
-const sharedClientRenderMobs = globalThis.VibeClientRenderMobs || null;
+const sharedClientRenderMobs = globalThis.Open2dClientRenderMobs || null;
 const sharedCreateMobRenderTools =
   sharedClientRenderMobs && typeof sharedClientRenderMobs.createMobRenderTools === "function"
     ? sharedClientRenderMobs.createMobRenderTools
@@ -1144,7 +1144,7 @@ const mobRenderTools = sharedCreateMobRenderTools
       getCurrentSelf
     })
   : null;
-const sharedClientRenderPlayers = globalThis.VibeClientRenderPlayers || null;
+const sharedClientRenderPlayers = globalThis.Open2dClientRenderPlayers || null;
 const sharedCreatePlayerRenderTools =
   sharedClientRenderPlayers && typeof sharedClientRenderPlayers.createPlayerRenderTools === "function"
     ? sharedClientRenderPlayers.createPlayerRenderTools
@@ -1179,7 +1179,7 @@ const playerRenderTools = sharedCreatePlayerRenderTools
       isTouchJoystickEnabled
     })
   : null;
-const sharedClientRenderProjectiles = globalThis.VibeClientRenderProjectiles || null;
+const sharedClientRenderProjectiles = globalThis.Open2dClientRenderProjectiles || null;
 const sharedCreateProjectileRenderTools =
   sharedClientRenderProjectiles && typeof sharedClientRenderProjectiles.createProjectileRenderTools === "function"
     ? sharedClientRenderProjectiles.createProjectileRenderTools
@@ -1196,7 +1196,7 @@ const projectileRenderTools = sharedCreateProjectileRenderTools
       getAbilityVisualHook
     })
   : null;
-const sharedClientUiPresentation = globalThis.VibeClientUiPresentation || null;
+const sharedClientUiPresentation = globalThis.Open2dClientUiPresentation || null;
 const sharedCreateUiPresentationTools =
   sharedClientUiPresentation && typeof sharedClientUiPresentation.createUiPresentationTools === "function"
     ? sharedClientUiPresentation.createUiPresentationTools
@@ -1690,7 +1690,7 @@ const BUILTIN_ACTION_DEFS = {
     castMs: 0
   }
 };
-const abilityVisualRegistry = globalThis.VibeAbilityVisualRegistry || {
+const abilityVisualRegistry = globalThis.Open2dAbilityVisualRegistry || {
   defaultVisuals: {},
   byKind: {},
   byId: {}
@@ -1790,7 +1790,7 @@ function getAbilityVisualHook(actionId, actionDef, hookName, fallback = "", kind
   return fallback;
 }
 
-const sharedClientUiActions = globalThis.VibeClientUiActions || null;
+const sharedClientUiActions = globalThis.Open2dClientUiActions || null;
 const sharedCreateUiActionTools =
   sharedClientUiActions && typeof sharedClientUiActions.createUiActionTools === "function"
     ? sharedClientUiActions.createUiActionTools
@@ -2096,7 +2096,7 @@ function getItemCopperValueClient(itemInput) {
   );
 }
 
-const sharedClientSpatialAudio = globalThis.VibeClientSpatialAudio || null;
+const sharedClientSpatialAudio = globalThis.Open2dClientSpatialAudio || null;
 const sharedCreateSpatialAudioTools =
   sharedClientSpatialAudio && typeof sharedClientSpatialAudio.createSpatialAudioTools === "function"
     ? sharedClientSpatialAudio.createSpatialAudioTools
@@ -2510,7 +2510,7 @@ function scheduleDeferredClientTask(task) {
   window.setTimeout(() => task(), 0);
 }
 
-const sharedClientConfigBootstrap = globalThis.VibeClientConfigBootstrap || null;
+const sharedClientConfigBootstrap = globalThis.Open2dClientConfigBootstrap || null;
 const sharedCreateConfigBootstrapTools =
   sharedClientConfigBootstrap && typeof sharedClientConfigBootstrap.createConfigBootstrapTools === "function"
     ? sharedClientConfigBootstrap.createConfigBootstrapTools
@@ -2721,7 +2721,7 @@ function stopAllAbilityChannelAudio() {
   }
 }
 
-const sharedClientAbilityRuntime = globalThis.VibeClientAbilityRuntime || null;
+const sharedClientAbilityRuntime = globalThis.Open2dClientAbilityRuntime || null;
 const sharedCreateAbilityRuntimeTools =
   sharedClientAbilityRuntime && typeof sharedClientAbilityRuntime.createAbilityRuntimeTools === "function"
     ? sharedClientAbilityRuntime.createAbilityRuntimeTools
@@ -7956,7 +7956,7 @@ if (craftingCloseButton) {
   });
 }
 
-const sharedClientUiPanels = globalThis.VibeClientUiPanels || null;
+const sharedClientUiPanels = globalThis.Open2dClientUiPanels || null;
 const sharedCreateUiPanelTools =
   sharedClientUiPanels && typeof sharedClientUiPanels.createUiPanelTools === "function"
     ? sharedClientUiPanels.createUiPanelTools
@@ -7979,8 +7979,8 @@ const uiPanelTools = sharedCreateUiPanelTools
     })
   : null;
 
-const sharedClientApp = globalThis.VibeClientApp && typeof globalThis.VibeClientApp === "object" ? globalThis.VibeClientApp : null;
-const sharedCreateQuestUiTools = globalThis.__vibemmoCreateQuestUiTools || null;
+const sharedClientApp = globalThis.Open2dClientApp && typeof globalThis.Open2dClientApp === "object" ? globalThis.Open2dClientApp : null;
+const sharedCreateQuestUiTools = globalThis.__open2dmmoCreateQuestUiTools || null;
 const sharedCreateQuestRuntimeTools =
   sharedClientApp &&
   sharedClientApp.questRuntime &&
@@ -9518,7 +9518,7 @@ function getActionSlotClientCenter(slotId, fallbackClientX = 0, fallbackClientY 
 }
 
 function clientPointToCanvasPoint(clientX, clientY) {
-  const sharedCanvasCoordinates = globalThis.VibeClientCanvasCoordinates || null;
+  const sharedCanvasCoordinates = globalThis.Open2dClientCanvasCoordinates || null;
   if (sharedCanvasCoordinates && typeof sharedCanvasCoordinates.clientPointToCanvasPoint === "function") {
     return sharedCanvasCoordinates.clientPointToCanvasPoint(canvas, clientX, clientY);
   }
@@ -9529,7 +9529,7 @@ function clientPointToCanvasPoint(clientX, clientY) {
 }
 
 function getCanvasClientCenterPoint() {
-  const sharedCanvasCoordinates = globalThis.VibeClientCanvasCoordinates || null;
+  const sharedCanvasCoordinates = globalThis.Open2dClientCanvasCoordinates || null;
   if (sharedCanvasCoordinates && typeof sharedCanvasCoordinates.getCanvasClientCenter === "function") {
     return sharedCanvasCoordinates.getCanvasClientCenter(canvas);
   }
@@ -11399,7 +11399,7 @@ function applyEquipmentDelta(msg) {
   updateVendorPanelUI();
 }
 
-const sharedClientNetworkPackets = globalThis.VibeClientNetworkPackets || null;
+const sharedClientNetworkPackets = globalThis.Open2dClientNetworkPackets || null;
 const sharedCreateNetworkPacketParsers =
   sharedClientNetworkPackets && typeof sharedClientNetworkPackets.createNetworkPacketParsers === "function"
     ? sharedClientNetworkPackets.createNetworkPacketParsers
@@ -11552,7 +11552,7 @@ function parseBinaryPacket(arrayBuffer) {
   networkPacketParsers.parseBinaryPacket(arrayBuffer);
 }
 
-const sharedClientRenderState = globalThis.VibeClientRenderState || null;
+const sharedClientRenderState = globalThis.Open2dClientRenderState || null;
 const sharedCreateRenderStateInterpolator =
   sharedClientRenderState && typeof sharedClientRenderState.createRenderStateInterpolator === "function"
     ? sharedClientRenderState.createRenderStateInterpolator
@@ -12095,7 +12095,7 @@ const serverMessageHandlers = {
   }
 };
 
-const sharedClientNetworkSession = globalThis.VibeClientNetworkSession || null;
+const sharedClientNetworkSession = globalThis.Open2dClientNetworkSession || null;
 const sharedCreateNetworkSessionTools =
   sharedClientNetworkSession && typeof sharedClientNetworkSession.createNetworkSessionTools === "function"
     ? sharedClientNetworkSession.createNetworkSessionTools
@@ -12140,7 +12140,7 @@ function resizeCanvas() {
   syncMobileChatLayout();
 }
 
-const sharedClientPlayerControls = globalThis.VibeClientPlayerControls || null;
+const sharedClientPlayerControls = globalThis.Open2dClientPlayerControls || null;
 const sharedCreatePlayerControlTools =
   sharedClientPlayerControls && typeof sharedClientPlayerControls.createPlayerControlTools === "function"
     ? sharedClientPlayerControls.createPlayerControlTools
@@ -12773,7 +12773,7 @@ function worldToScreen(worldX, worldY, cameraX, cameraY) {
   };
 }
 
-const sharedClientVfxRuntime = globalThis.VibeClientVfxRuntime || null;
+const sharedClientVfxRuntime = globalThis.Open2dClientVfxRuntime || null;
 const sharedCreateVfxRuntimeTools =
   sharedClientVfxRuntime && typeof sharedClientVfxRuntime.createVfxRuntimeTools === "function"
     ? sharedClientVfxRuntime.createVfxRuntimeTools

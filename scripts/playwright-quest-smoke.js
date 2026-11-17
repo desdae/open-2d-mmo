@@ -46,11 +46,11 @@ function normalizeDirection(dx, dy) {
 }
 
 async function getState(page) {
-  return page.evaluate(() => window.__vibemmoTest.getState());
+  return page.evaluate(() => window.__open2dmmoTest.getState());
 }
 
 async function stopMove(page) {
-  await page.evaluate(() => window.__vibemmoTest.stopMove());
+  await page.evaluate(() => window.__open2dmmoTest.stopMove());
 }
 
 async function moveNearWorld(page, targetX, targetY, threshold = 0.9, maxSteps = MAX_MOVE_STEPS) {
@@ -71,7 +71,7 @@ async function moveNearWorld(page, targetX, targetY, threshold = 0.9, maxSteps =
       await stopMove(page);
       return state;
     }
-    await page.evaluate((moveDir) => window.__vibemmoTest.setMove(moveDir.dx, moveDir.dy), dir);
+    await page.evaluate((moveDir) => window.__open2dmmoTest.setMove(moveDir.dx, moveDir.dy), dir);
     await sleep(MOVE_STEP_MS);
   }
   await stopMove(page);
@@ -84,27 +84,27 @@ async function moveNearWorld(page, targetX, targetY, threshold = 0.9, maxSteps =
 
 async function joinGame(page) {
   await page.goto(SERVER_URL, { waitUntil: "networkidle" });
-  await page.waitForFunction(() => window.__vibemmoTest && document.querySelector("#classType option[value]"));
+  await page.waitForFunction(() => window.__open2dmmoTest && document.querySelector("#classType option[value]"));
   await page.fill("#name", "pw-quests");
   await page.selectOption("#classType", "mage");
   await page.check("#isAdmin");
   await page.click("#join-form button[type='submit']");
   await page.waitForFunction(() => {
-    const state = window.__vibemmoTest && window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest && window.__open2dmmoTest.getState();
     return !!(state && state.self && state.town && state.town.vendor && Array.isArray(state.town.questGivers));
   });
 
-  await page.evaluate(() => window.__vibemmoTest.send({ type: "admin_set_level", level: 10 }));
+  await page.evaluate(() => window.__open2dmmoTest.send({ type: "admin_set_level", level: 10 }));
   await page.waitForFunction(() => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return !!(state.self && Number(state.self.level) >= 10);
   });
   for (let i = 0; i < 4; i += 1) {
-    await page.evaluate(() => window.__vibemmoTest.send({ type: "level_up_ability", abilityId: "lightningBeam" }));
+    await page.evaluate(() => window.__open2dmmoTest.send({ type: "level_up_ability", abilityId: "lightningBeam" }));
     await sleep(80);
   }
   await page.waitForFunction(() => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return !!(state.self && state.self.abilityLevels && Number(state.self.abilityLevels.lightningBeam) >= 5);
   });
 }
@@ -117,19 +117,19 @@ async function clickDialogueButton(page, name) {
 
 async function openQuestNpcDialogue(page, npc) {
   await moveNearWorld(page, Number(npc.x) + 0.5, Number(npc.y) + 0.5, 0.95);
-  await page.evaluate((coords) => window.__vibemmoTest.dispatchContextMenuAtWorld(coords.x, coords.y), {
+  await page.evaluate((coords) => window.__open2dmmoTest.dispatchContextMenuAtWorld(coords.x, coords.y), {
     x: Number(npc.x) + 0.5,
     y: Number(npc.y) + 0.5
   });
   await page.waitForFunction(() => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return !!(state.dialogue && state.dialogue.visible);
   });
 }
 
 async function getDialogueChoiceTexts(page) {
   return page.evaluate(() => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     const node = state && state.dialogue ? state.dialogue.node : null;
     return Array.isArray(node && node.choices)
       ? node.choices.map((choice) => String(choice && choice.text || "")).filter(Boolean)
@@ -157,7 +157,7 @@ async function getQuestPanelText(page) {
 
 async function getActiveQuestByTitle(page, title) {
   return page.evaluate((expectedTitle) => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return Array.isArray(state.questState && state.questState.active)
       ? state.questState.active.find((quest) => String(quest && quest.title || "") === expectedTitle) || null
       : null;
@@ -166,7 +166,7 @@ async function getActiveQuestByTitle(page, title) {
 
 async function waitForQuestNpcMarkerState(page, npcId, expectedKey) {
   await page.waitForFunction(({ expectedNpcId, expectedKeyName }) => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     const markers = Array.isArray(state.questState && state.questState.questNpcMarkers)
       ? state.questState.questNpcMarkers
       : [];
@@ -177,7 +177,7 @@ async function waitForQuestNpcMarkerState(page, npcId, expectedKey) {
 
 async function ensurePixiQuestNpcMarker(page, expectedNpcId, expectedMarker) {
   await page.waitForFunction(({ targetNpcId, targetMarker }) => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     const stats = state && state.rendererStats ? state.rendererStats : null;
     const samples = Array.isArray(stats && stats.questNpcSamples) ? stats.questNpcSamples : [];
     const sample = samples.find((entry) => String(entry && entry.id || "") === targetNpcId);
@@ -224,7 +224,7 @@ async function closeVendorPanelIfOpen(page) {
 
 async function ensureQuestAccepted(page, questId) {
   await page.waitForFunction((expectedQuestId) => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return Array.isArray(state.questState && state.questState.active) &&
       state.questState.active.some((quest) => String(quest && quest.questId || "") === expectedQuestId);
   }, questId);
@@ -232,7 +232,7 @@ async function ensureQuestAccepted(page, questId) {
 
 async function ensureQuestCompleted(page, questId) {
   await page.waitForFunction((expectedQuestId) => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return Array.isArray(state.questState && state.questState.completed) &&
       state.questState.completed.includes(expectedQuestId);
   }, questId);
@@ -240,7 +240,7 @@ async function ensureQuestCompleted(page, questId) {
 
 async function ensureObjectiveComplete(page, questId, textFragment) {
   await page.waitForFunction(({ expectedQuestId, expectedText }) => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     const quest = Array.isArray(state.questState && state.questState.active)
       ? state.questState.active.find((entry) => String(entry && entry.questId || "") === expectedQuestId)
       : null;
@@ -253,8 +253,8 @@ async function ensureObjectiveComplete(page, questId, textFragment) {
 }
 
 async function ensurePixiQuestNpcVisible(page, expectedNpcId) {
-  await page.evaluate(() => window.__vibemmoTest.setRendererMode("pixi"));
-  await page.waitForFunction(() => window.__vibemmoTest.getRendererMode() === "pixi");
+  await page.evaluate(() => window.__open2dmmoTest.setRendererMode("pixi"));
+  await page.waitForFunction(() => window.__open2dmmoTest.getRendererMode() === "pixi");
   let lastState = null;
   for (let attempt = 0; attempt < 80; attempt += 1) {
     lastState = await getState(page);
@@ -331,7 +331,7 @@ async function completeZombieObjective(page, questId) {
       if (zombieDistance > 7.5) {
         const dir = normalizeDirection(Number(zombie.x) - Number(state.self.x), Number(zombie.y) - Number(state.self.y));
         if (dir) {
-          await page.evaluate((moveDir) => window.__vibemmoTest.setMove(moveDir.dx, moveDir.dy), dir);
+          await page.evaluate((moveDir) => window.__open2dmmoTest.setMove(moveDir.dx, moveDir.dy), dir);
           await sleep(350);
           await stopMove(page);
           await sleep(100);
@@ -341,7 +341,7 @@ async function completeZombieObjective(page, questId) {
     }
 
     if (zombie && Number(state.self && state.self.mana) > 0) {
-      await page.evaluate((target) => window.__vibemmoTest.castAtWorld("lightningBeam", target.x, target.y), {
+      await page.evaluate((target) => window.__open2dmmoTest.castAtWorld("lightningBeam", target.x, target.y), {
         x: zombie.x,
         y: zombie.y
       });
@@ -350,7 +350,7 @@ async function completeZombieObjective(page, questId) {
     }
 
     const sweepDir = searchDirections[attempt % searchDirections.length];
-    await page.evaluate((moveDir) => window.__vibemmoTest.setMove(moveDir.dx, moveDir.dy), sweepDir);
+    await page.evaluate((moveDir) => window.__open2dmmoTest.setMove(moveDir.dx, moveDir.dy), sweepDir);
     await sleep(600);
     await stopMove(page);
     await sleep(150);
@@ -386,7 +386,7 @@ async function findVisibleMobWithRealName(page) {
       { dx: 0, dy: -1 }
     ];
     const sweepDir = searchDirections[attempt % searchDirections.length];
-    await page.evaluate((moveDir) => window.__vibemmoTest.setMove(moveDir.dx, moveDir.dy), sweepDir);
+    await page.evaluate((moveDir) => window.__open2dmmoTest.setMove(moveDir.dx, moveDir.dy), sweepDir);
     await sleep(500);
     await stopMove(page);
     await sleep(150);
@@ -398,7 +398,7 @@ async function findVisibleMobWithRealName(page) {
 
 async function ensureProjectileMetaVisible(page, abilityId) {
   await page.waitForFunction((expectedAbilityId) => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return Array.isArray(state.projectiles) &&
       state.projectiles.some((projectile) => String(projectile && projectile.abilityId || "") === expectedAbilityId);
   }, abilityId);
@@ -437,20 +437,20 @@ async function run() {
     }
 
     await moveNearWorld(page, Number(herald.x) + 0.5, Number(herald.y) - 5.5, 0.7);
-    await page.evaluate((coords) => window.__vibemmoTest.dispatchContextMenuAtWorld(coords.x, coords.y), {
+    await page.evaluate((coords) => window.__open2dmmoTest.dispatchContextMenuAtWorld(coords.x, coords.y), {
       x: Number(herald.x) + 0.5,
       y: Number(herald.y) + 0.5
     });
 
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return !!(
         (state.autoMove && state.autoMove.active && state.autoMove.questNpcId === "town_herald") ||
         (state.dialogue && state.dialogue.visible && state.dialogue.npcName === "Town Herald")
       );
     });
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return !!(state.dialogue && state.dialogue.visible && state.dialogue.npcName === "Town Herald");
     });
 
@@ -481,7 +481,7 @@ async function run() {
     });
 
     await moveNearWorld(page, Number(vendor.x) + 0.5, Number(vendor.y) + 0.5, 0.8);
-    await page.evaluate((coords) => window.__vibemmoTest.dispatchContextMenuAtWorld(coords.x, coords.y), {
+    await page.evaluate((coords) => window.__open2dmmoTest.dispatchContextMenuAtWorld(coords.x, coords.y), {
       x: Number(vendor.x) + 0.5,
       y: Number(vendor.y) + 0.5
     });
@@ -489,7 +489,7 @@ async function run() {
     const leaveButton = page.getByRole("button", { name: "Leave", exact: true });
     if (await leaveButton.count()) {
       const dialogueVisible = await page.evaluate(() => {
-        const state = window.__vibemmoTest.getState();
+        const state = window.__open2dmmoTest.getState();
         return !!(state.dialogue && state.dialogue.visible);
       });
       if (dialogueVisible) {
@@ -498,9 +498,9 @@ async function run() {
     }
     await closeVendorPanelIfOpen(page);
 
-    await page.evaluate(() => window.__vibemmoTest.send({ type: "admin_complete_quest", questId: "quest_first_steps" }));
+    await page.evaluate(() => window.__open2dmmoTest.send({ type: "admin_complete_quest", questId: "quest_first_steps" }));
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       const quest = Array.isArray(state.questState && state.questState.active)
         ? state.questState.active.find((entry) => String(entry && entry.questId || "") === "quest_first_steps")
         : null;
@@ -510,12 +510,12 @@ async function run() {
     await ensurePixiQuestNpcMarker(page, "town_herald", "?");
 
     await moveNearWorld(page, Number(herald.x) + 0.5, Number(herald.y) + 0.5, 0.95);
-    await page.evaluate((coords) => window.__vibemmoTest.dispatchContextMenuAtWorld(coords.x, coords.y), {
+    await page.evaluate((coords) => window.__open2dmmoTest.dispatchContextMenuAtWorld(coords.x, coords.y), {
       x: Number(herald.x) + 0.5,
       y: Number(herald.y) + 0.5
     });
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return !!(state.dialogue && state.dialogue.visible && state.dialogue.node && state.dialogue.node.questComplete);
     });
     await clickDialogueButton(page, "Complete Quest");
@@ -523,7 +523,7 @@ async function run() {
 
     await openQuestNpcDialogue(page, herald);
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       const node = state.dialogue && state.dialogue.node;
       return !!(node && Array.isArray(node.choices) && node.choices.length >= 3);
     });
@@ -547,7 +547,7 @@ async function run() {
     });
     await clickDialogueButton(page, "Show me the other jobs.");
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       const node = state.dialogue && state.dialogue.node;
       return !!(node && Array.isArray(node.choices) && node.choices.length >= 3);
     });
@@ -556,7 +556,7 @@ async function run() {
     await clickDialogueButton(page, "Accept Quest");
 
     await page.waitForFunction((expectedTitle) => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return Array.isArray(state.questState && state.questState.active) &&
         state.questState.active.some((quest) => String(quest && quest.title || "") === expectedTitle);
     }, scoutingChoice);
@@ -582,9 +582,9 @@ async function run() {
       return !!(panel && panel.classList.contains("hidden"));
     });
 
-    await page.evaluate((questId) => window.__vibemmoTest.send({ type: "admin_complete_quest", questId }), generatedQuest.questId);
+    await page.evaluate((questId) => window.__open2dmmoTest.send({ type: "admin_complete_quest", questId }), generatedQuest.questId);
     await page.waitForFunction((questId) => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       const quest = Array.isArray(state.questState && state.questState.active)
         ? state.questState.active.find((entry) => String(entry && entry.questId || "") === questId)
         : null;
@@ -593,7 +593,7 @@ async function run() {
 
     await openQuestNpcDialogue(page, herald);
     await page.waitForFunction((questId) => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return !!(
         state.dialogue &&
         state.dialogue.visible &&
@@ -604,14 +604,14 @@ async function run() {
     }, generatedQuest.questId);
     await clickDialogueButton(page, "Complete Quest");
     await page.waitForFunction((questId) => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return Array.isArray(state.questState && state.questState.active) &&
         !state.questState.active.some((entry) => String(entry && entry.questId || "") === questId);
     }, generatedQuest.questId);
 
     await openQuestNpcDialogue(page, herald);
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       const node = state.dialogue && state.dialogue.node;
       return !!(node && Array.isArray(node.choices) && node.choices.length >= 4);
     });
@@ -624,7 +624,7 @@ async function run() {
     await clickDialogueButton(page, "I'll take this one.");
     await clickDialogueButton(page, "Accept Quest");
     await page.waitForFunction((expectedTitle) => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return Array.isArray(state.questState && state.questState.active) &&
         state.questState.active.some((quest) => String(quest && quest.title || "") === expectedTitle);
     }, stockpileChoice);
@@ -634,12 +634,12 @@ async function run() {
     }
 
     await page.evaluate(() => {
-      window.__vibemmoTest.send({ type: "admin_grant_item", itemId: "oakLog", qty: 20 });
-      window.__vibemmoTest.send({ type: "admin_grant_item", itemId: "birchLog", qty: 20 });
-      window.__vibemmoTest.send({ type: "admin_grant_item", itemId: "copperOre", qty: 20 });
+      window.__open2dmmoTest.send({ type: "admin_grant_item", itemId: "oakLog", qty: 20 });
+      window.__open2dmmoTest.send({ type: "admin_grant_item", itemId: "birchLog", qty: 20 });
+      window.__open2dmmoTest.send({ type: "admin_grant_item", itemId: "copperOre", qty: 20 });
     });
     await page.waitForFunction((questId) => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       const quest = Array.isArray(state.questState && state.questState.active)
         ? state.questState.active.find((entry) => String(entry && entry.questId || "") === questId)
         : null;
@@ -648,7 +648,7 @@ async function run() {
 
     await openQuestNpcDialogue(page, herald);
     await page.waitForFunction((questId) => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return !!(
         state.dialogue &&
         state.dialogue.visible &&
@@ -659,7 +659,7 @@ async function run() {
     }, stockpileQuest.questId);
     await clickDialogueButton(page, "Complete Quest");
     await page.waitForFunction((questId) => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return Array.isArray(state.questState && state.questState.active) &&
         !state.questState.active.some((entry) => String(entry && entry.questId || "") === questId);
     }, stockpileQuest.questId);
@@ -670,7 +670,7 @@ async function run() {
       throw new Error(`Expected a real mob name, received: ${JSON.stringify(visibleMob)}`);
     }
 
-    await page.evaluate((target) => window.__vibemmoTest.castAtWorld("frostbolt", target.x, target.y), {
+    await page.evaluate((target) => window.__open2dmmoTest.castAtWorld("frostbolt", target.x, target.y), {
       x: visibleMob.x,
       y: visibleMob.y
     });

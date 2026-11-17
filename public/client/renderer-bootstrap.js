@@ -1,9 +1,9 @@
-(function initVibeClientRendererBootstrap(globalScope) {
+(function initOpen2dClientRendererBootstrap(globalScope) {
   "use strict";
 
   const CANVAS_RENDERER = "canvas";
   const PIXI_RENDERER = "pixi";
-  const RENDERER_STORAGE_KEY = "vibemmo-renderer";
+  const RENDERER_STORAGE_KEY = "open2dmmo-renderer";
 
   function normalizeRendererName(value) {
     const normalized = String(value || "").trim().toLowerCase();
@@ -129,7 +129,7 @@
     };
   }
 
-  globalScope.VibeClientRendererBootstrap = Object.freeze({
+  globalScope.Open2dClientRendererBootstrap = Object.freeze({
     CANVAS_RENDERER,
     PIXI_RENDERER,
     RENDERER_STORAGE_KEY,

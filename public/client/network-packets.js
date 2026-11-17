@@ -1,4 +1,4 @@
-(function initVibeClientNetworkPackets(globalScope) {
+(function initOpen2dClientNetworkPackets(globalScope) {
   "use strict";
 
   function fallbackClamp(value, min, max) {
@@ -1337,7 +1337,7 @@
     };
   }
 
-  globalScope.VibeClientNetworkPackets = Object.freeze({
+  globalScope.Open2dClientNetworkPackets = Object.freeze({
     createNetworkPacketParsers
   });
 })(globalThis);

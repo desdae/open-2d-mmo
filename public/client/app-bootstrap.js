@@ -1,20 +1,20 @@
-(function initVibeClientAppBootstrap(globalScope) {
+(function initOpen2dClientAppBootstrap(globalScope) {
   "use strict";
 
   const appNamespace =
-    globalScope.VibeClientApp && typeof globalScope.VibeClientApp === "object"
-      ? globalScope.VibeClientApp
-      : (globalScope.VibeClientApp = {});
+    globalScope.Open2dClientApp && typeof globalScope.Open2dClientApp === "object"
+      ? globalScope.Open2dClientApp
+      : (globalScope.Open2dClientApp = {});
 
   function createAppBootstrapTools(rawDeps) {
     const deps = rawDeps && typeof rawDeps === "object" ? rawDeps : {};
 
-    const sharedClientRenderLoop = globalScope.VibeClientRenderLoop || null;
+    const sharedClientRenderLoop = globalScope.Open2dClientRenderLoop || null;
     const sharedCreateRenderLoopTools =
       sharedClientRenderLoop && typeof sharedClientRenderLoop.createRenderLoopTools === "function"
         ? sharedClientRenderLoop.createRenderLoopTools
         : null;
-    const sharedClientWorldViewModels = globalScope.VibeClientWorldViewModels || null;
+    const sharedClientWorldViewModels = globalScope.Open2dClientWorldViewModels || null;
     const sharedCreateWorldViewModelTools =
       sharedClientWorldViewModels && typeof sharedClientWorldViewModels.createWorldViewModelTools === "function"
         ? sharedClientWorldViewModels.createWorldViewModelTools
@@ -46,7 +46,7 @@
         })
       : null;
 
-    const sharedClientCanvasWorldRenderer = globalScope.VibeClientCanvasWorldRenderer || null;
+    const sharedClientCanvasWorldRenderer = globalScope.Open2dClientCanvasWorldRenderer || null;
     const sharedCreateCanvasWorldRenderer =
       sharedClientCanvasWorldRenderer && typeof sharedClientCanvasWorldRenderer.createCanvasWorldRenderer === "function"
         ? sharedClientCanvasWorldRenderer.createCanvasWorldRenderer
@@ -98,7 +98,7 @@
         })
       : null;
 
-    const sharedClientPixiWorldRenderer = globalScope.VibeClientPixiWorldRenderer || null;
+    const sharedClientPixiWorldRenderer = globalScope.Open2dClientPixiWorldRenderer || null;
     const sharedCreatePixiWorldRenderer =
       sharedClientPixiWorldRenderer && typeof sharedClientPixiWorldRenderer.createPixiWorldRenderer === "function"
         ? sharedClientPixiWorldRenderer.createPixiWorldRenderer
@@ -140,7 +140,7 @@
         })
       : null;
 
-    const sharedClientRendererBootstrap = globalScope.VibeClientRendererBootstrap || null;
+    const sharedClientRendererBootstrap = globalScope.Open2dClientRendererBootstrap || null;
     const sharedCreateRendererBootstrap =
       sharedClientRendererBootstrap && typeof sharedClientRendererBootstrap.createRendererBootstrap === "function"
         ? sharedClientRendererBootstrap.createRendererBootstrap
@@ -154,7 +154,7 @@
         })
       : null;
 
-    globalScope.__vibemmoGetRendererDebugStats = () =>
+    globalScope.__open2dmmoGetRendererDebugStats = () =>
       rendererBootstrap && typeof rendererBootstrap.getDebugStats === "function" ? rendererBootstrap.getDebugStats() : null;
 
     const renderLoopTools = sharedCreateRenderLoopTools
@@ -194,7 +194,7 @@
       renderLoopTools.renderFrame();
     }
 
-    const sharedClientInputBootstrap = globalScope.VibeClientInputBootstrap || null;
+    const sharedClientInputBootstrap = globalScope.Open2dClientInputBootstrap || null;
     const sharedCreateInputBootstrap =
       sharedClientInputBootstrap && typeof sharedClientInputBootstrap.createInputBootstrap === "function"
         ? sharedClientInputBootstrap.createInputBootstrap

@@ -1,4 +1,4 @@
-(function initVibeClientUiActions(globalScope) {
+(function initOpen2dClientUiActions(globalScope) {
   "use strict";
 
   function fallbackClamp(value, min, max) {
@@ -236,7 +236,7 @@
     };
   }
 
-  globalScope.VibeClientUiActions = Object.freeze({
+  globalScope.Open2dClientUiActions = Object.freeze({
     createUiActionTools
   });
 })(globalThis);

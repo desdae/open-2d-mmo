@@ -40,11 +40,11 @@ function normalizeDirection(dx, dy) {
 }
 
 async function getState(page) {
-  return page.evaluate(() => window.__vibemmoTest.getState());
+  return page.evaluate(() => window.__open2dmmoTest.getState());
 }
 
 async function stopMove(page) {
-  await page.evaluate(() => window.__vibemmoTest.stopMove());
+  await page.evaluate(() => window.__open2dmmoTest.stopMove());
 }
 
 async function moveNearWorld(page, targetX, targetY, threshold = 6.2, maxSteps = MAX_MOVE_STEPS) {
@@ -66,7 +66,7 @@ async function moveNearWorld(page, targetX, targetY, threshold = 6.2, maxSteps =
       await stopMove(page);
       return;
     }
-    await page.evaluate((moveDir) => window.__vibemmoTest.setMove(moveDir.dx, moveDir.dy), direction);
+    await page.evaluate((moveDir) => window.__open2dmmoTest.setMove(moveDir.dx, moveDir.dy), direction);
     await sleep(MOVE_STEP_MS);
   }
   await stopMove(page);
@@ -75,24 +75,24 @@ async function moveNearWorld(page, targetX, targetY, threshold = 6.2, maxSteps =
 
 async function joinGame(page) {
   await page.goto(SERVER_URL, { waitUntil: "networkidle" });
-  await page.waitForFunction(() => window.__vibemmoTest && document.querySelector("#classType option[value]"));
+  await page.waitForFunction(() => window.__open2dmmoTest && document.querySelector("#classType option[value]"));
   await page.fill("#name", "pw-damage");
   await page.selectOption("#classType", "mage");
   await page.check("#isAdmin");
   await page.click("#join-form button[type='submit']");
-  await page.waitForFunction(() => !!(window.__vibemmoTest.getState() || {}).self);
+  await page.waitForFunction(() => !!(window.__open2dmmoTest.getState() || {}).self);
 
-  await page.evaluate(() => window.__vibemmoTest.send({ type: "admin_set_level", level: 10 }));
-  await page.waitForFunction(() => Number((window.__vibemmoTest.getState().self || {}).level) >= 10);
+  await page.evaluate(() => window.__open2dmmoTest.send({ type: "admin_set_level", level: 10 }));
+  await page.waitForFunction(() => Number((window.__open2dmmoTest.getState().self || {}).level) >= 10);
 
   for (let index = 0; index < 4; index += 1) {
-    await page.evaluate(() => window.__vibemmoTest.send({ type: "level_up_ability", abilityId: "lightningBeam" }));
-    await page.evaluate(() => window.__vibemmoTest.send({ type: "level_up_ability", abilityId: "fireball" }));
+    await page.evaluate(() => window.__open2dmmoTest.send({ type: "level_up_ability", abilityId: "lightningBeam" }));
+    await page.evaluate(() => window.__open2dmmoTest.send({ type: "level_up_ability", abilityId: "fireball" }));
     await sleep(80);
   }
 
   await page.waitForFunction(() => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return !!(
       state.self &&
       state.self.abilityLevels &&
@@ -145,7 +145,7 @@ async function findAndApproachHuntable(page) {
 
 async function ensureFloatingDamageVisible(page) {
   await page.waitForFunction(() => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return Number(state && state.floatingDamageCount) > 0;
   }, null, { timeout: 15000 });
 }
@@ -158,11 +158,11 @@ async function dealDamageToVisibleHuntable(page) {
       throw new Error("Lost huntable target before casting.");
     }
     await moveNearWorld(page, Number(target.x), Number(target.y), 4.5, 24);
-    await page.evaluate((coords) => window.__vibemmoTest.castAtWorld("fireball", coords.x, coords.y), {
+    await page.evaluate((coords) => window.__open2dmmoTest.castAtWorld("fireball", coords.x, coords.y), {
       x: Number(target.x),
       y: Number(target.y)
     });
-    await page.evaluate((coords) => window.__vibemmoTest.castAtWorld("lightningBeam", coords.x, coords.y), {
+    await page.evaluate((coords) => window.__open2dmmoTest.castAtWorld("lightningBeam", coords.x, coords.y), {
       x: Number(target.x),
       y: Number(target.y)
     });
@@ -185,8 +185,8 @@ async function main() {
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
     await joinGame(page);
-    await page.evaluate(() => window.__vibemmoTest.setRendererMode("pixi"));
-    await page.waitForFunction(() => window.__vibemmoTest.getRendererMode() === "pixi");
+    await page.evaluate(() => window.__open2dmmoTest.setRendererMode("pixi"));
+    await page.waitForFunction(() => window.__open2dmmoTest.getRendererMode() === "pixi");
 
     const initialState = await getState(page);
     await findAndApproachHuntable(page);

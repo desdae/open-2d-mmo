@@ -4,7 +4,7 @@
     return;
   }
   const root = typeof globalThis !== "undefined" ? globalThis : window;
-  root.VibeAbilityVisualRegistry = rootFactory();
+  root.Open2dAbilityVisualRegistry = rootFactory();
 })(function buildAbilityVisualRegistry() {
   const registry = {
     defaultVisuals: {

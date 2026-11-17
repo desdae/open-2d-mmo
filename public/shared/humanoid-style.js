@@ -4,7 +4,7 @@
     return;
   }
   const root = typeof globalThis !== "undefined" ? globalThis : window;
-  root.VibeHumanoidStyle = rootFactory(root.VibeNumberUtils || {});
+  root.Open2dHumanoidStyle = rootFactory(root.Open2dNumberUtils || {});
 })(function buildHumanoidStyle(numberUtils) {
   const clamp =
     typeof numberUtils.clamp === "function" ? numberUtils.clamp : (value, min, max) => Math.max(min, Math.min(max, value));

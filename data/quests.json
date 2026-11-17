@@ -3,7 +3,7 @@
     {
       "id": "quest_first_steps",
       "title": "First Steps",
-      "description": "Learn the basics of survival in VibeMMO by speaking with the Town Herald and defeating some zombies.",
+      "description": "Learn the basics of survival in Open 2D MMO by speaking with the Town Herald and defeating some zombies.",
       "minLevel": 1,
       "npcGiverId": "town_herald",
       "npcCompleteId": "town_herald",
@@ -14,7 +14,7 @@
       "rewards": { "exp": 50, "items": [{ "itemId": "healthPotion01", "qty": 2 }] },
       "dialogue": {
         "offer": [
-          { "id": "start", "text": "Greetings, adventurer! Welcome to VibeMMO.", "speaker": "Town Herald" },
+          { "id": "start", "text": "Greetings, adventurer! Welcome to Open 2D MMO.", "speaker": "Town Herald" },
           { "text": "The lands beyond the town are dangerous. Could you help me with something?", "speaker": "Town Herald", "choices": [
             { "text": "I'll help!", "next": "accept" },
             { "text": "What do you need?", "next": "details" },

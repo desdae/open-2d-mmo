@@ -1,4 +1,4 @@
-(function initVibeClientRenderPlayers(globalScope) {
+(function initOpen2dClientRenderPlayers(globalScope) {
   "use strict";
 
   function createPlayerRenderTools(rawDeps) {
@@ -929,7 +929,7 @@
     };
   }
 
-  globalScope.VibeClientRenderPlayers = Object.freeze({
+  globalScope.Open2dClientRenderPlayers = Object.freeze({
     createPlayerRenderTools
   });
 })(globalThis);

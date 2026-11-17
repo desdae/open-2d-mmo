@@ -1,4 +1,4 @@
-(function initVibeClientRenderState(globalScope) {
+(function initOpen2dClientRenderState(globalScope) {
   "use strict";
 
   function fallbackClamp(value, min, max) {
@@ -77,7 +77,7 @@
     };
   }
 
-  globalScope.VibeClientRenderState = Object.freeze({
+  globalScope.Open2dClientRenderState = Object.freeze({
     createRenderStateInterpolator
   });
 })(globalThis);

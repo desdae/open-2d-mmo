@@ -1,4 +1,4 @@
-(function initVibeClientConfigBootstrap(globalScope) {
+(function initOpen2dClientConfigBootstrap(globalScope) {
   "use strict";
 
   function createConfigBootstrapTools(rawDeps) {
@@ -59,7 +59,7 @@
     };
   }
 
-  globalScope.VibeClientConfigBootstrap = Object.freeze({
+  globalScope.Open2dClientConfigBootstrap = Object.freeze({
     createConfigBootstrapTools
   });
 })(globalThis);

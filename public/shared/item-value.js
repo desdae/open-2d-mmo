@@ -4,7 +4,7 @@
     return;
   }
   const root = typeof globalThis !== "undefined" ? globalThis : window;
-  root.VibeItemValue = rootFactory();
+  root.Open2dItemValue = rootFactory();
 })(function buildItemValueModule() {
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));

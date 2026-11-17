@@ -4,7 +4,7 @@
     return;
   }
   const root = typeof globalThis !== "undefined" ? globalThis : window;
-  root.VibeNumberUtils = rootFactory();
+  root.Open2dNumberUtils = rootFactory();
 })(function buildNumberUtils() {
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));

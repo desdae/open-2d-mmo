@@ -1,4 +1,4 @@
-(function initVibeClientPlayerControls(globalScope) {
+(function initOpen2dClientPlayerControls(globalScope) {
   "use strict";
 
   function createPlayerControlTools(rawDeps) {
@@ -20,7 +20,7 @@
     const sendJsonMessage = typeof deps.sendJsonMessage === "function" ? deps.sendJsonMessage : () => false;
 
     function clientPointToCanvasPoint(localCanvas, clientX, clientY) {
-      const sharedCanvasCoordinates = globalScope.VibeClientCanvasCoordinates || null;
+      const sharedCanvasCoordinates = globalScope.Open2dClientCanvasCoordinates || null;
       if (
         sharedCanvasCoordinates &&
         typeof sharedCanvasCoordinates.clientPointToCanvasPoint === "function"
@@ -156,7 +156,7 @@
     };
   }
 
-  globalScope.VibeClientPlayerControls = Object.freeze({
+  globalScope.Open2dClientPlayerControls = Object.freeze({
     createPlayerControlTools
   });
 })(globalThis);

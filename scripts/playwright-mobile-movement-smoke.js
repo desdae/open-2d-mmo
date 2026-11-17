@@ -33,18 +33,18 @@ function startServer() {
 
 async function joinGame(page) {
   await page.goto(SERVER_URL, { waitUntil: "networkidle" });
-  await page.waitForFunction(() => window.__vibemmoTest && document.querySelector("#classType option[value]"));
+  await page.waitForFunction(() => window.__open2dmmoTest && document.querySelector("#classType option[value]"));
   await page.fill("#name", "pw-mobile-move");
   await page.selectOption("#classType", "mage");
   await page.click("#join-form button[type='submit']");
   await page.waitForFunction(() => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return !!(state && state.self);
   });
 }
 
 async function getState(page) {
-  return page.evaluate(() => window.__vibemmoTest.getState());
+  return page.evaluate(() => window.__open2dmmoTest.getState());
 }
 
 async function main() {
@@ -92,7 +92,7 @@ async function main() {
     const joystickPoint = touchSetup.joystickPoint;
 
     await page.evaluate((point) => {
-      window.__vibemmoTest.dispatchTouchEventAtClient("touchstart", point.clientX, point.clientY, 11);
+      window.__open2dmmoTest.dispatchTouchEventAtClient("touchstart", point.clientX, point.clientY, 11);
     }, touchPoint);
 
     const tapState = await getState(page);
@@ -108,15 +108,15 @@ async function main() {
     }
 
     await page.evaluate((point) => {
-      window.__vibemmoTest.dispatchTouchEventAtClient("touchcancel", point.clientX, point.clientY, 11);
+      window.__open2dmmoTest.dispatchTouchEventAtClient("touchcancel", point.clientX, point.clientY, 11);
     }, touchPoint);
 
     await page.evaluate((point) => {
-      window.__vibemmoTest.dispatchTouchEventAtClient("touchstart", point.clientX, point.clientY, 22);
+      window.__open2dmmoTest.dispatchTouchEventAtClient("touchstart", point.clientX, point.clientY, 22);
     }, joystickPoint);
     const joystickState = await getState(page);
     await page.evaluate((point) => {
-      window.__vibemmoTest.dispatchTouchEventAtClient("touchcancel", point.clientX, point.clientY, 22);
+      window.__open2dmmoTest.dispatchTouchEventAtClient("touchcancel", point.clientX, point.clientY, 22);
     }, joystickPoint);
 
     const mouseDx = Math.abs(Number(joystickState.mouse.sx) - Number(tapState.mouse.sx));

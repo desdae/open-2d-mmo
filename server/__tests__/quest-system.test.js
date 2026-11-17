@@ -264,7 +264,7 @@ test.describe("Quest System Integration Tests", () => {
     const hasVendor = await page.evaluate(() => {
       try {
         // Try to access game state through any exposed global
-        const state = window.gameState || window.vibeGameState || null;
+        const state = window.gameState || window.open2dGameState || null;
         return state && state.town && state.town.vendor !== undefined;
       } catch (e) {
         return false;

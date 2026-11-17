@@ -253,7 +253,7 @@ test.describe("Quest System Tests", () => {
       return {
         gameUI_class: gameUI ? gameUI.className : "not found",
         questPanel_class: questPanel ? questPanel.className : "not found",
-        hasQuestUiTools: typeof window.__vibemmoTest !== "undefined"
+        hasQuestUiTools: typeof window.__open2dmmoTest !== "undefined"
       };
     });
     console.log("Debug info:", debugInfo);
@@ -291,8 +291,8 @@ test.describe("Quest System Tests", () => {
     
     // Switch to Pixi mode for more reliable rendering
     await page.evaluate(() => {
-      if (window.__vibemmoTest && window.__vibemmoTest.setRendererMode) {
-        window.__vibemmoTest.setRendererMode("pixi");
+      if (window.__open2dmmoTest && window.__open2dmmoTest.setRendererMode) {
+        window.__open2dmmoTest.setRendererMode("pixi");
       }
     });
     await page.waitForTimeout(1000);
@@ -301,11 +301,11 @@ test.describe("Quest System Tests", () => {
     
     // Verify NPC is visible in rendering by checking the game state
     const gameState = await page.evaluate(() => {
-      if (!window.__vibemmoTest) return null;
-      const state = window.__vibemmoTest.getState();
+      if (!window.__open2dmmoTest) return null;
+      const state = window.__open2dmmoTest.getState();
       return {
         self: state.self,
-        rendererMode: window.__vibemmoTest.getRendererMode()
+        rendererMode: window.__open2dmmoTest.getRendererMode()
       };
     });
     
@@ -350,8 +350,8 @@ test.describe("Quest System Tests", () => {
     
     // Check renderer mode
     const rendererMode = await page.evaluate(() => {
-      if (window.__vibemmoTest && window.__vibemmoTest.getRendererMode) {
-        return window.__vibemmoTest.getRendererMode();
+      if (window.__open2dmmoTest && window.__open2dmmoTest.getRendererMode) {
+        return window.__open2dmmoTest.getRendererMode();
       }
       return "unknown";
     });
@@ -373,8 +373,8 @@ test.describe("Quest System Tests", () => {
     
     // Switch to Pixi mode
     await page.evaluate(() => {
-      if (window.__vibemmoTest && window.__vibemmoTest.setRendererMode) {
-        window.__vibemmoTest.setRendererMode("pixi");
+      if (window.__open2dmmoTest && window.__open2dmmoTest.setRendererMode) {
+        window.__open2dmmoTest.setRendererMode("pixi");
       }
     });
     await page.waitForTimeout(1000);
@@ -383,8 +383,8 @@ test.describe("Quest System Tests", () => {
     
     // Check renderer mode
     const rendererMode = await page.evaluate(() => {
-      if (window.__vibemmoTest && window.__vibemmoTest.getRendererMode) {
-        return window.__vibemmoTest.getRendererMode();
+      if (window.__open2dmmoTest && window.__open2dmmoTest.getRendererMode) {
+        return window.__open2dmmoTest.getRendererMode();
       }
       return "unknown";
     });

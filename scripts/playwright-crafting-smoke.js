@@ -38,11 +38,11 @@ function normalizeDirection(dx, dy) {
 }
 
 async function getState(page) {
-  return page.evaluate(() => window.__vibemmoTest.getState());
+  return page.evaluate(() => window.__open2dmmoTest.getState());
 }
 
 async function stopMove(page) {
-  await page.evaluate(() => window.__vibemmoTest.stopMove());
+  await page.evaluate(() => window.__open2dmmoTest.stopMove());
 }
 
 async function moveNearWorld(page, targetX, targetY, threshold = 3, maxSteps = 120) {
@@ -64,7 +64,7 @@ async function moveNearWorld(page, targetX, targetY, threshold = 3, maxSteps = 1
       await stopMove(page);
       return;
     }
-    await page.evaluate((moveDir) => window.__vibemmoTest.setMove(moveDir.dx, moveDir.dy), dir);
+    await page.evaluate((moveDir) => window.__open2dmmoTest.setMove(moveDir.dx, moveDir.dy), dir);
     await sleep(MOVE_STEP_MS);
   }
   await stopMove(page);
@@ -72,13 +72,13 @@ async function moveNearWorld(page, targetX, targetY, threshold = 3, maxSteps = 1
 
 async function joinGame(page) {
   await page.goto(SERVER_URL, { waitUntil: "networkidle" });
-  await page.waitForFunction(() => window.__vibemmoTest && document.querySelector("#classType option[value]"));
+  await page.waitForFunction(() => window.__open2dmmoTest && document.querySelector("#classType option[value]"));
   await page.fill("#name", "pw-crafting");
   await page.selectOption("#classType", "mage");
   await page.check("#isAdmin");
   await page.click("#join-form button[type='submit']");
   await page.waitForFunction(() => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return !!(state && state.self && Array.isArray(state.resourceNodes));
   });
 }
@@ -130,7 +130,7 @@ async function gatherNearest(page, matcher, completionCheck, maxAttempts = 8, wa
       continue;
     }
     await moveNearWorld(page, Number(node.x) + 0.5, Number(node.y) + 0.5, 3.2);
-    await page.evaluate((target) => window.__vibemmoTest.dispatchContextMenuAtWorld(target.x + 0.5, target.y + 0.5), {
+    await page.evaluate((target) => window.__open2dmmoTest.dispatchContextMenuAtWorld(target.x + 0.5, target.y + 0.5), {
       x: Number(node.x) || 0,
       y: Number(node.y) || 0
     });
@@ -150,12 +150,12 @@ async function main() {
     await joinGame(page);
 
     await page.evaluate(() => {
-      window.__vibemmoTest.send({ type: "admin_grant_item", itemId: "oakLog", qty: 3 });
-      window.__vibemmoTest.send({ type: "admin_grant_item", itemId: "sap", qty: 1 });
-      window.__vibemmoTest.send({ type: "admin_grant_item", itemId: "roughStone", qty: 2 });
+      window.__open2dmmoTest.send({ type: "admin_grant_item", itemId: "oakLog", qty: 3 });
+      window.__open2dmmoTest.send({ type: "admin_grant_item", itemId: "sap", qty: 1 });
+      window.__open2dmmoTest.send({ type: "admin_grant_item", itemId: "roughStone", qty: 2 });
     });
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       const inventory = Array.isArray(state.inventory) ? state.inventory.filter(Boolean) : [];
       const countOf = (itemId) => inventory.reduce((sum, entry) => sum + (String(entry && entry.itemId || "") === itemId ? Number(entry && entry.qty) || 0 : 0), 0);
       return countOf("oakLog") >= 3 && countOf("sap") >= 1 && countOf("roughStone") >= 2;
@@ -218,7 +218,7 @@ async function main() {
     await recipeEntry.locator("button", { hasText: "Craft" }).click();
 
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       const inventory = Array.isArray(state.inventory) ? state.inventory.filter(Boolean) : [];
       return inventory.some((entry) => String(entry && entry.itemId || "") === "crudePickaxe");
     }, null, { timeout: 12000 });

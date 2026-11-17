@@ -1,4 +1,4 @@
-(function initVibeClientRenderHumanoids(globalScope) {
+(function initOpen2dClientRenderHumanoids(globalScope) {
   "use strict";
 
   function createHumanoidRenderTools(rawDeps) {
@@ -2284,7 +2284,7 @@
     };
   }
 
-  globalScope.VibeClientRenderHumanoids = Object.freeze({
+  globalScope.Open2dClientRenderHumanoids = Object.freeze({
     createHumanoidRenderTools
   });
 })(globalThis);

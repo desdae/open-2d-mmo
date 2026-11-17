@@ -1,10 +1,10 @@
-(function initVibeClientQuestRuntime(globalScope) {
+(function initOpen2dClientQuestRuntime(globalScope) {
   "use strict";
 
   const appNamespace =
-    globalScope.VibeClientApp && typeof globalScope.VibeClientApp === "object"
-      ? globalScope.VibeClientApp
-      : (globalScope.VibeClientApp = {});
+    globalScope.Open2dClientApp && typeof globalScope.Open2dClientApp === "object"
+      ? globalScope.Open2dClientApp
+      : (globalScope.Open2dClientApp = {});
 
   function createQuestRuntimeTools(rawDeps) {
     const deps = rawDeps && typeof rawDeps === "object" ? rawDeps : {};
@@ -279,13 +279,13 @@
           notificationPanel: deps.notificationPanel
         });
       }
-      if (deps.questCloseButton && !deps.questCloseButton.__vibeQuestRuntimeBound) {
+      if (deps.questCloseButton && !deps.questCloseButton.__open2dQuestRuntimeBound) {
         deps.questCloseButton.addEventListener("click", () => {
           if (questUiTools && typeof questUiTools.setQuestPanelVisible === "function") {
             questUiTools.setQuestPanelVisible(false);
           }
         });
-        deps.questCloseButton.__vibeQuestRuntimeBound = true;
+        deps.questCloseButton.__open2dQuestRuntimeBound = true;
       }
       return questUiTools;
     }

@@ -34,7 +34,7 @@ function startServer() {
 }
 
 async function getState(page) {
-  return page.evaluate(() => window.__vibemmoTest.getState());
+  return page.evaluate(() => window.__open2dmmoTest.getState());
 }
 
 function normalizeDirection(dx, dy) {
@@ -49,7 +49,7 @@ function normalizeDirection(dx, dy) {
 }
 
 async function stopMove(page) {
-  await page.evaluate(() => window.__vibemmoTest.stopMove());
+  await page.evaluate(() => window.__open2dmmoTest.stopMove());
 }
 
 async function moveNearWorld(page, targetX, targetY, threshold = 2.8, maxSteps = MAX_MOVE_STEPS) {
@@ -70,7 +70,7 @@ async function moveNearWorld(page, targetX, targetY, threshold = 2.8, maxSteps =
       await stopMove(page);
       return;
     }
-    await page.evaluate((moveDir) => window.__vibemmoTest.setMove(moveDir.dx, moveDir.dy), dir);
+    await page.evaluate((moveDir) => window.__open2dmmoTest.setMove(moveDir.dx, moveDir.dy), dir);
     await sleep(MOVE_STEP_MS);
   }
   await stopMove(page);
@@ -78,19 +78,19 @@ async function moveNearWorld(page, targetX, targetY, threshold = 2.8, maxSteps =
 
 async function joinGame(page) {
   await page.goto(SERVER_URL, { waitUntil: "networkidle" });
-  await page.waitForFunction(() => window.__vibemmoTest && document.querySelector("#classType option[value]"));
+  await page.waitForFunction(() => window.__open2dmmoTest && document.querySelector("#classType option[value]"));
   await page.fill("#name", "pw-resources");
   await page.selectOption("#classType", "mage");
   await page.click("#join-form button[type='submit']");
   await page.waitForFunction(() => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return !!(state && state.self);
   });
 }
 
 async function waitForResources(page) {
   await page.waitForFunction(() => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return Array.isArray(state && state.resourceNodes) && state.resourceNodes.length > 0;
   });
 }
@@ -137,24 +137,24 @@ async function main() {
     state = await getState(page);
 
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return state.rendererStats && Number(state.rendererStats.resources || 0) > 0;
     });
 
-    await page.evaluate(() => window.__vibemmoTest.setRendererMode("pixi"));
+    await page.evaluate(() => window.__open2dmmoTest.setRendererMode("pixi"));
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return state.rendererMode === "pixi" && state.rendererStats && Number(state.rendererStats.resources || 0) > 0;
     });
 
     const beforeExp = Number((state.self && state.self.skills && state.self.skills.woodcutting && state.self.skills.woodcutting.exp) || 0);
-    await page.evaluate((target) => window.__vibemmoTest.dispatchContextMenuAtWorld(target.x + 0.5, target.y + 0.5), {
+    await page.evaluate((target) => window.__open2dmmoTest.dispatchContextMenuAtWorld(target.x + 0.5, target.y + 0.5), {
       x: Number(resource.x) || 0,
       y: Number(resource.y) || 0
     });
 
     await page.waitForFunction((expectedNodeId) => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       const skillExp = Number((state.self && state.self.skills && state.self.skills.woodcutting && state.self.skills.woodcutting.exp) || 0);
       const inventory = Array.isArray(state.inventory) ? state.inventory.filter(Boolean) : [];
       const hasWood = inventory.some((entry) => ["oakLog", "birchLog", "pineLog", "sap", "resin"].includes(String(entry && entry.itemId || "")));

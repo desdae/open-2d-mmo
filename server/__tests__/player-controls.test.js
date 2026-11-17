@@ -1,21 +1,21 @@
 const fs = require("fs");
 const path = require("path");
 
-describe("VibeClientPlayerControls", () => {
+describe("Open2dClientPlayerControls", () => {
   const modulePath = path.resolve(__dirname, "../../public/client/player-controls.js");
   const canvasCoordinatesPath = path.resolve(__dirname, "../../public/client/canvas-coordinates.js");
   const indexHtmlPath = path.resolve(__dirname, "../../public/index.html");
 
   beforeEach(() => {
     jest.resetModules();
-    delete globalThis.VibeClientPlayerControls;
-    delete globalThis.VibeClientCanvasCoordinates;
+    delete globalThis.Open2dClientPlayerControls;
+    delete globalThis.Open2dClientCanvasCoordinates;
     globalThis.WebSocket = { OPEN: 1 };
   });
 
   afterEach(() => {
-    delete globalThis.VibeClientPlayerControls;
-    delete globalThis.VibeClientCanvasCoordinates;
+    delete globalThis.Open2dClientPlayerControls;
+    delete globalThis.Open2dClientCanvasCoordinates;
     delete globalThis.WebSocket;
   });
 
@@ -23,7 +23,7 @@ describe("VibeClientPlayerControls", () => {
     require(modulePath);
     const mouseState = { sx: 0, sy: 0 };
 
-    const tools = globalThis.VibeClientPlayerControls.createPlayerControlTools({
+    const tools = globalThis.Open2dClientPlayerControls.createPlayerControlTools({
       canvas: {
         width: 1080,
         height: 2400,

@@ -77,16 +77,16 @@ function createFrame(frameNow, mob, projectile) {
   };
 }
 
-describe("VibeClientCanvasWorldRenderer", () => {
+describe("Open2dClientCanvasWorldRenderer", () => {
   const modulePath = path.resolve(__dirname, "../../public/client/canvas-world-renderer.js");
 
   beforeEach(() => {
     jest.resetModules();
-    delete globalThis.VibeClientCanvasWorldRenderer;
+    delete globalThis.Open2dClientCanvasWorldRenderer;
   });
 
   afterEach(() => {
-    delete globalThis.VibeClientCanvasWorldRenderer;
+    delete globalThis.Open2dClientCanvasWorldRenderer;
   });
 
   test("throttles spatial audio updates and reuses scratch arrays", () => {
@@ -94,7 +94,7 @@ describe("VibeClientCanvasWorldRenderer", () => {
 
     const updateMobCastSpatialAudio = jest.fn();
     const updateProjectileSpatialAudio = jest.fn();
-    const renderer = globalThis.VibeClientCanvasWorldRenderer.createCanvasWorldRenderer(
+    const renderer = globalThis.Open2dClientCanvasWorldRenderer.createCanvasWorldRenderer(
       createRendererDeps({
         spatialAudioIntervalMs: 50,
         maintenanceIntervalMs: 1000,
@@ -126,7 +126,7 @@ describe("VibeClientCanvasWorldRenderer", () => {
     const pruneSkeletonWalkRuntime = jest.fn();
     const pruneProjectileVisualRuntime = jest.fn();
     const pruneAmbientParticleEmitters = jest.fn();
-    const renderer = globalThis.VibeClientCanvasWorldRenderer.createCanvasWorldRenderer(
+    const renderer = globalThis.Open2dClientCanvasWorldRenderer.createCanvasWorldRenderer(
       createRendererDeps({
         spatialAudioIntervalMs: 1000,
         maintenanceIntervalMs: 90,
