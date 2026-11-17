@@ -1,7 +1,13 @@
 {
-  "name": "vibemmo-prototype",
+  "name": "open-2d-mmo",
   "version": "0.1.0",
-  "description": "Basic MMO prototype from game_spec.md",
+  "description": "Browser-based 2D MMO prototype: authoritative Node.js WebSocket server with a canvas/Pixi client",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/desdae/open-2d-mmo.git"
+  },
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

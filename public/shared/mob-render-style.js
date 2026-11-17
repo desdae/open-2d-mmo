@@ -4,7 +4,7 @@
     return;
   }
   const root = typeof globalThis !== "undefined" ? globalThis : window;
-  root.VibeMobRenderStyle = rootFactory(root.VibeNumberUtils || {}, root.VibeHumanoidStyle || {});
+  root.Open2dMobRenderStyle = rootFactory(root.Open2dNumberUtils || {}, root.Open2dHumanoidStyle || {});
 })(function buildMobRenderStyle(numberUtils, humanoidStyle) {
   const clamp =
     typeof numberUtils.clamp === "function" ? numberUtils.clamp : (value, min, max) => Math.max(min, Math.min(max, value));

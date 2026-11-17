@@ -117,23 +117,23 @@ function createParserDeps(overrides = {}) {
   };
 }
 
-describe("VibeClientNetworkPackets", () => {
+describe("Open2dClientNetworkPackets", () => {
   const modulePath = path.resolve(__dirname, "../../public/client/network-packets.js");
 
   beforeEach(() => {
     jest.resetModules();
-    delete globalThis.VibeClientNetworkPackets;
+    delete globalThis.Open2dClientNetworkPackets;
   });
 
   afterEach(() => {
-    delete globalThis.VibeClientNetworkPackets;
+    delete globalThis.Open2dClientNetworkPackets;
   });
 
   test("publishes a fresh render snapshot when mob and projectile meta arrive after entity state", () => {
     require(modulePath);
 
     const { deps, snapshots, pushSnapshot } = createParserDeps();
-    const parsers = globalThis.VibeClientNetworkPackets.createNetworkPacketParsers(deps);
+    const parsers = globalThis.Open2dClientNetworkPackets.createNetworkPacketParsers(deps);
     const buildEntityUpdatePacket = createEntityUpdatePacketBuilder({
       getPendingHealAmount: () => 0,
       getPendingManaAmount: () => 0,

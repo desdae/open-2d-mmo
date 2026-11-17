@@ -1,4 +1,4 @@
-(function initVibeClientInputBootstrap(globalScope) {
+(function initOpen2dClientInputBootstrap(globalScope) {
   "use strict";
 
   function createInputBootstrap(rawDeps) {
@@ -447,7 +447,7 @@
     };
   }
 
-  globalScope.VibeClientInputBootstrap = Object.freeze({
+  globalScope.Open2dClientInputBootstrap = Object.freeze({
     createInputBootstrap
   });
 })(globalThis);

@@ -33,18 +33,18 @@ function startServer() {
 
 async function joinGame(page) {
   await page.goto(SERVER_URL, { waitUntil: "networkidle" });
-  await page.waitForFunction(() => window.__vibemmoTest && document.querySelector("#classType option[value]"));
+  await page.waitForFunction(() => window.__open2dmmoTest && document.querySelector("#classType option[value]"));
   await page.fill("#name", "pw-mobile-quest");
   await page.selectOption("#classType", "mage");
   await page.click("#join-form button[type='submit']");
   await page.waitForFunction(() => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return !!(state && state.self && state.town && Array.isArray(state.town.questGivers));
   });
 }
 
 async function getState(page) {
-  return page.evaluate(() => window.__vibemmoTest.getState());
+  return page.evaluate(() => window.__open2dmmoTest.getState());
 }
 
 async function getDialogueLayoutSnapshot(page) {
@@ -74,7 +74,7 @@ async function getDialogueLayoutSnapshot(page) {
 
 async function getQuestGiverTapPoint(page) {
   return page.evaluate(() => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     const questGiver = Array.isArray(state && state.town && state.town.questGivers) ? state.town.questGivers[0] : null;
     return questGiver ? { questGiver } : null;
   });
@@ -101,14 +101,14 @@ async function main() {
     }
 
     await page.evaluate((tapState) => {
-      return window.__vibemmoTest.dispatchTouchTapAtWorld(
+      return window.__open2dmmoTest.dispatchTouchTapAtWorld(
         Number(tapState.questGiver.x) + 0.5,
         Number(tapState.questGiver.y) + 0.5
       );
     }, tapPoint);
 
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return !!(state && state.dialogue && state.dialogue.visible);
     }, null, { timeout: 20000 });
 

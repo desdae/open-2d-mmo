@@ -33,16 +33,16 @@ function startServer() {
 
 async function joinGame(page) {
   await page.goto(SERVER_URL, { waitUntil: "networkidle" });
-  await page.waitForFunction(() => window.__vibemmoTest && document.querySelector("#classType option[value]"));
+  await page.waitForFunction(() => window.__open2dmmoTest && document.querySelector("#classType option[value]"));
   await page.fill("#name", "pw-mobile-tracker");
   await page.selectOption("#classType", "warrior");
   await page.click("#join-form button[type='submit']");
   await page.waitForFunction(() => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return !!(state && state.self);
   });
   await page.waitForFunction(() => {
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     return !!(state && state.questState && Array.isArray(state.questState.active) && state.questState.active.length > 0);
   }, null, { timeout: 20000 });
 }
@@ -52,7 +52,7 @@ async function getTrackerSnapshot(page) {
     const tracker = document.getElementById("quest-tracker-panel");
     const button = document.getElementById("mobile-tracker-button");
     const actionUi = document.getElementById("action-ui");
-    const state = window.__vibemmoTest.getState();
+    const state = window.__open2dmmoTest.getState();
     if (!tracker || !button || !actionUi) {
       return null;
     }

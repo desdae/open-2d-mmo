@@ -144,3 +144,7 @@ public/index.prod.html
 
 # Local temporary diagnostics and screenshots
 .tmp/
+
+# Playwright output
+test-results/
+playwright-report/

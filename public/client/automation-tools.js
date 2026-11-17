@@ -1,10 +1,10 @@
-(function initVibeClientAutomationTools(globalScope) {
+(function initOpen2dClientAutomationTools(globalScope) {
   "use strict";
 
   const appNamespace =
-    globalScope.VibeClientApp && typeof globalScope.VibeClientApp === "object"
-      ? globalScope.VibeClientApp
-      : (globalScope.VibeClientApp = {});
+    globalScope.Open2dClientApp && typeof globalScope.Open2dClientApp === "object"
+      ? globalScope.Open2dClientApp
+      : (globalScope.Open2dClientApp = {});
 
   function createAutomationTools(rawDeps) {
     const deps = rawDeps && typeof rawDeps === "object" ? rawDeps : {};
@@ -329,7 +329,7 @@
       if (!windowObject || !["localhost", "127.0.0.1"].includes(String(windowObject.location && windowObject.location.hostname || ""))) {
         return;
       }
-      windowObject.__vibemmoTest = Object.freeze({
+      windowObject.__open2dmmoTest = Object.freeze({
         getState: () => buildAutomationSnapshot(),
         getRendererMode: () => (deps.rendererBootstrap ? deps.rendererBootstrap.getRendererMode() : "canvas"),
         getClientPointForWorld(worldX, worldY) {

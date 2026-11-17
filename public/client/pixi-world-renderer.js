@@ -1,4 +1,4 @@
-(function initVibeClientPixiWorldRenderer(globalScope) {
+(function initOpen2dClientPixiWorldRenderer(globalScope) {
   "use strict";
 
   function createPixiWorldRenderer(rawDeps) {
@@ -64,12 +64,12 @@
       typeof deps.sanitizeCssColor === "function"
         ? deps.sanitizeCssColor
         : (value) => (/^#[0-9a-fA-F]{3,8}$/.test(String(value || "").trim()) ? String(value).trim() : "");
-    const sharedHumanoidModule = globalScope.VibeClientRenderHumanoids || null;
+    const sharedHumanoidModule = globalScope.Open2dClientRenderHumanoids || null;
     const createHumanoidRenderTools =
       sharedHumanoidModule && typeof sharedHumanoidModule.createHumanoidRenderTools === "function"
         ? sharedHumanoidModule.createHumanoidRenderTools
         : null;
-    const sharedPixiParticleModule = globalScope.VibeClientPixiParticleSystem || null;
+    const sharedPixiParticleModule = globalScope.Open2dClientPixiParticleSystem || null;
     const createPixiParticleSystem =
       sharedPixiParticleModule && typeof sharedPixiParticleModule.createPixiParticleSystem === "function"
         ? sharedPixiParticleModule.createPixiParticleSystem
@@ -458,7 +458,7 @@
       runtime.lastSeenAt = Number(now) || performance.now();
       if (debugKey && runtime.canvas && typeof runtime.canvas === "object") {
         try {
-          runtime.canvas.__vibeSpriteKey = String(debugKey);
+          runtime.canvas.__open2dSpriteKey = String(debugKey);
         } catch (_error) {
           // Debug tagging is best-effort only.
         }
@@ -1234,7 +1234,7 @@
       if (!canvas || typeof canvas !== "object") {
         return "";
       }
-      return String(canvas.__vibeSpriteKey || "");
+      return String(canvas.__open2dSpriteKey || "");
     }
 
     function getAreaEffectVisualConfig(effect) {
@@ -1627,8 +1627,8 @@
       const formationRadius = Math.max(0, Number(effect && effect.formationRadius) || 0.9);
       const abilityId = String(effect && effect.abilityId || "").toLowerCase();
       const positions =
-        globalScope.VibeSummonLayout && typeof globalScope.VibeSummonLayout.computeSummonFormationPositions === "function"
-          ? globalScope.VibeSummonLayout.computeSummonFormationPositions(0, 0, count, formationRadius)
+        globalScope.Open2dSummonLayout && typeof globalScope.Open2dSummonLayout.computeSummonFormationPositions === "function"
+          ? globalScope.Open2dSummonLayout.computeSummonFormationPositions(0, 0, count, formationRadius)
           : [{ x: 0, y: 0, index: 0 }];
       const isHydra = abilityId.includes("hydra");
       const glow = ctx.createRadialGradient(cx, cy, radius * 0.2, cx, cy, radius);
@@ -2198,8 +2198,8 @@
           ctx.setLineDash([]);
         }
 
-        if (String(effect && effect.kind || "") === "summon" && globalScope.VibeSummonLayout && typeof globalScope.VibeSummonLayout.computeSummonFormationPositions === "function") {
-          const positions = globalScope.VibeSummonLayout.computeSummonFormationPositions(
+        if (String(effect && effect.kind || "") === "summon" && globalScope.Open2dSummonLayout && typeof globalScope.Open2dSummonLayout.computeSummonFormationPositions === "function") {
+          const positions = globalScope.Open2dSummonLayout.computeSummonFormationPositions(
             0,
             0,
             summonCount,
@@ -4068,7 +4068,7 @@
             node.sprite.texture.baseTexture &&
             node.sprite.texture.baseTexture.resource &&
             node.sprite.texture.baseTexture.resource.source &&
-            node.sprite.texture.baseTexture.resource.source.__vibeSpriteKey || ""
+            node.sprite.texture.baseTexture.resource.source.__open2dSpriteKey || ""
           )
         })),
         projectileSamples: projectileSpriteEntries.slice(0, 12).map((item) => ({
@@ -4100,7 +4100,7 @@
     };
   }
 
-  globalScope.VibeClientPixiWorldRenderer = Object.freeze({
+  globalScope.Open2dClientPixiWorldRenderer = Object.freeze({
     createPixiWorldRenderer
   });
 })(globalThis);

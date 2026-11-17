@@ -4,7 +4,7 @@
     return;
   }
   const root = typeof globalThis !== "undefined" ? globalThis : window;
-  root.VibeProtocolCodecs = rootFactory(root.VibeProtocol || {});
+  root.Open2dProtocolCodecs = rootFactory(root.Open2dProtocol || {});
 })(function buildProtocolCodecs(protocol) {
   const POS_SCALE = Math.max(1, Number(protocol.POS_SCALE) || 64);
   const DAMAGE_EVENT_FLAG_TARGET_PLAYER = Number(protocol.DAMAGE_EVENT_FLAG_TARGET_PLAYER) || 0;

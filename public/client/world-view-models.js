@@ -1,4 +1,4 @@
-(function initVibeClientWorldViewModels(globalScope) {
+(function initOpen2dClientWorldViewModels(globalScope) {
   "use strict";
 
   function createWorldViewModelTools(rawDeps) {
@@ -187,7 +187,7 @@
     };
   }
 
-  globalScope.VibeClientWorldViewModels = Object.freeze({
+  globalScope.Open2dClientWorldViewModels = Object.freeze({
     createWorldViewModelTools
   });
 })(globalThis);

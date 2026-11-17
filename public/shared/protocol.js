@@ -4,7 +4,7 @@
     return;
   }
   const root = typeof globalThis !== "undefined" ? globalThis : window;
-  root.VibeProtocol = rootFactory();
+  root.Open2dProtocol = rootFactory();
 })(function buildProtocolConstants() {
   const constants = {
     ENTITY_PROTO_TYPE: 1,

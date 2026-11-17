@@ -1,6 +1,6 @@
 const path = require("path");
 
-describe("VibeAbilityIdHash", () => {
+describe("Open2dAbilityIdHash", () => {
   const modulePath = path.resolve(__dirname, "../../public/shared/ability-id-hash.js");
   const protocolCodecsPath = path.resolve(__dirname, "../../public/shared/protocol-codecs.js");
 

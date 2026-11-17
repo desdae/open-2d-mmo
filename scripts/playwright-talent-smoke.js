@@ -49,30 +49,30 @@ async function run() {
     });
 
     await page.goto(SERVER_URL, { waitUntil: "networkidle" });
-    await page.waitForFunction(() => window.__vibemmoTest && document.querySelector("#classType option[value]"));
+    await page.waitForFunction(() => window.__open2dmmoTest && document.querySelector("#classType option[value]"));
     await page.fill("#name", "pw-talents");
     await page.selectOption("#classType", "warrior");
     await page.check("#isAdmin");
     await page.click("#join-form button[type='submit']");
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest && window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest && window.__open2dmmoTest.getState();
       return !!(state && state.self);
     });
 
     // Grant enough talent points to unlock and max Charge Mastery (requires Juggernaut rank 3).
-    await page.evaluate(() => window.__vibemmoTest.send({ type: "admin_set_level", level: 9 }));
+    await page.evaluate(() => window.__open2dmmoTest.send({ type: "admin_set_level", level: 9 }));
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest && window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest && window.__open2dmmoTest.getState();
       return !!(state && state.self && state.self.level >= 9);
     });
 
     // Spend talents: Juggernaut x3, Charge Mastery x5.
     for (let i = 0; i < 3; i += 1) {
-      await page.evaluate(() => window.__vibemmoTest.send({ type: "spend_talent_point", talentId: "juggernaut" }));
+      await page.evaluate(() => window.__open2dmmoTest.send({ type: "spend_talent_point", talentId: "juggernaut" }));
       await sleep(80);
     }
     for (let i = 0; i < 5; i += 1) {
-      await page.evaluate(() => window.__vibemmoTest.send({ type: "spend_talent_point", talentId: "charge_mastery" }));
+      await page.evaluate(() => window.__open2dmmoTest.send({ type: "spend_talent_point", talentId: "charge_mastery" }));
       await sleep(80);
     }
 
@@ -91,16 +91,16 @@ async function run() {
 
     // Gameplay should reflect the increased Charge range.
     const firstStart = await page.evaluate(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return { x: Number(state.self.x) || 0, y: Number(state.self.y) || 0 };
     });
     await page.evaluate(() => {
-      const state = window.__vibemmoTest.getState();
-      window.__vibemmoTest.castAtWorld("charge", state.self.x + 100, state.self.y);
+      const state = window.__open2dmmoTest.getState();
+      window.__open2dmmoTest.castAtWorld("charge", state.self.x + 100, state.self.y);
     });
     await sleep(1000);
     const firstEnd = await page.evaluate(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return { x: Number(state.self.x) || 0, y: Number(state.self.y) || 0 };
     });
     const firstDistance = Math.hypot(firstEnd.x - firstStart.x, firstEnd.y - firstStart.y);
@@ -112,12 +112,12 @@ async function run() {
     await sleep(6100);
     const secondStart = firstEnd;
     await page.evaluate(() => {
-      const state = window.__vibemmoTest.getState();
-      window.__vibemmoTest.castAtWorld("charge", state.self.x + 100, state.self.y);
+      const state = window.__open2dmmoTest.getState();
+      window.__open2dmmoTest.castAtWorld("charge", state.self.x + 100, state.self.y);
     });
     await sleep(1000);
     const secondEnd = await page.evaluate(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return { x: Number(state.self.x) || 0, y: Number(state.self.y) || 0 };
     });
     const secondDistance = Math.hypot(secondEnd.x - secondStart.x, secondEnd.y - secondStart.y);

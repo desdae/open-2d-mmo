@@ -7,9 +7,9 @@
     return;
   }
   const root = typeof globalThis !== "undefined" ? globalThis : window;
-  root.VibeAbilityNormalization = rootFactory(
-    root.VibeNumberUtils || {},
-    root.VibeObjectUtils || {}
+  root.Open2dAbilityNormalization = rootFactory(
+    root.Open2dNumberUtils || {},
+    root.Open2dObjectUtils || {}
   );
 })(function buildAbilityNormalization(numberUtils, objectUtils) {
   const clamp =

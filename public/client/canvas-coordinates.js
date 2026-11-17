@@ -1,4 +1,4 @@
-(function initVibeClientCanvasCoordinates(globalScope) {
+(function initOpen2dClientCanvasCoordinates(globalScope) {
   "use strict";
 
   function getCanvasClientRect(canvas) {
@@ -49,7 +49,7 @@
     };
   }
 
-  globalScope.VibeClientCanvasCoordinates = Object.freeze({
+  globalScope.Open2dClientCanvasCoordinates = Object.freeze({
     clientPointToCanvasPoint,
     getCanvasClientCenter
   });

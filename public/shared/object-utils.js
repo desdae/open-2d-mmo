@@ -4,7 +4,7 @@
     return;
   }
   const root = typeof globalThis !== "undefined" ? globalThis : window;
-  root.VibeObjectUtils = rootFactory();
+  root.Open2dObjectUtils = rootFactory();
 })(function buildObjectUtils() {
   function getObjectPath(source, pathValue) {
     if (!source || typeof source !== "object" || !pathValue) {

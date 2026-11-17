@@ -1,4 +1,4 @@
-(function initVibeClientPixiParticleSystem(globalScope) {
+(function initOpen2dClientPixiParticleSystem(globalScope) {
   "use strict";
 
   function createPixiParticleSystem(rawDeps) {
@@ -340,7 +340,7 @@
     };
   }
 
-  globalScope.VibeClientPixiParticleSystem = Object.freeze({
+  globalScope.Open2dClientPixiParticleSystem = Object.freeze({
     createPixiParticleSystem
   });
 })(globalThis);

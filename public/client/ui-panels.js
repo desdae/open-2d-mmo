@@ -1,4 +1,4 @@
-(function initVibeClientUiPanels(globalScope) {
+(function initOpen2dClientUiPanels(globalScope) {
   "use strict";
 
   function createUiPanelTools(rawDeps) {
@@ -22,7 +22,7 @@
     const getRendererDebugStats =
       typeof deps.getRendererDebugStats === "function"
         ? deps.getRendererDebugStats
-        : () => (typeof globalScope.__vibemmoGetRendererDebugStats === "function" ? globalScope.__vibemmoGetRendererDebugStats() : null);
+        : () => (typeof globalScope.__open2dmmoGetRendererDebugStats === "function" ? globalScope.__open2dmmoGetRendererDebugStats() : null);
 
     function setInventoryVisible(visible) {
       if (!inventoryPanel) {
@@ -248,7 +248,7 @@
     };
   }
 
-  globalScope.VibeClientUiPanels = Object.freeze({
+  globalScope.Open2dClientUiPanels = Object.freeze({
     createUiPanelTools
   });
 })(globalThis);

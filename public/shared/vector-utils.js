@@ -4,7 +4,7 @@
     return;
   }
   const root = typeof globalThis !== "undefined" ? globalThis : window;
-  root.VibeVectorUtils = rootFactory();
+  root.Open2dVectorUtils = rootFactory();
 })(function buildVectorUtils() {
   function normalizeDirection(dx, dy) {
     const length = Math.hypot(dx, dy);

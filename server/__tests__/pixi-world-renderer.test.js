@@ -234,19 +234,19 @@ function collectTextNodes(root, target = []) {
   return target;
 }
 
-describe("VibeClientPixiWorldRenderer", () => {
+describe("Open2dClientPixiWorldRenderer", () => {
   const modulePath = path.resolve(__dirname, "../../public/client/pixi-world-renderer.js");
 
   beforeEach(() => {
     jest.resetModules();
-    delete globalThis.VibeClientPixiWorldRenderer;
-    delete globalThis.VibeClientRenderHumanoids;
+    delete globalThis.Open2dClientPixiWorldRenderer;
+    delete globalThis.Open2dClientRenderHumanoids;
     delete global.document;
   });
 
   afterEach(() => {
-    delete globalThis.VibeClientPixiWorldRenderer;
-    delete globalThis.VibeClientRenderHumanoids;
+    delete globalThis.Open2dClientPixiWorldRenderer;
+    delete globalThis.Open2dClientRenderHumanoids;
     delete global.document;
     jest.restoreAllMocks();
   });
@@ -255,7 +255,7 @@ describe("VibeClientPixiWorldRenderer", () => {
     require(modulePath);
 
     const { PIXI, applicationInstances } = createPixiStub();
-    const renderer = globalThis.VibeClientPixiWorldRenderer.createPixiWorldRenderer({
+    const renderer = globalThis.Open2dClientPixiWorldRenderer.createPixiWorldRenderer({
       PIXI,
       canvasElement: {
         style: {},
@@ -282,7 +282,7 @@ describe("VibeClientPixiWorldRenderer", () => {
 
     const { PIXI, applicationInstances } = createPixiStub();
     const drawHumanoid = jest.fn();
-    globalThis.VibeClientRenderHumanoids = {
+    globalThis.Open2dClientRenderHumanoids = {
       createHumanoidRenderTools: () => ({
         drawHumanoid
       })
@@ -299,7 +299,7 @@ describe("VibeClientPixiWorldRenderer", () => {
         insertBefore: () => {}
       }
     };
-    const renderer = globalThis.VibeClientPixiWorldRenderer.createPixiWorldRenderer({
+    const renderer = globalThis.Open2dClientPixiWorldRenderer.createPixiWorldRenderer({
       PIXI,
       canvasElement,
       windowObject: {
@@ -360,14 +360,14 @@ describe("VibeClientPixiWorldRenderer", () => {
     require(modulePath);
 
     const { PIXI, applicationInstances } = createPixiStub();
-    globalThis.VibeClientRenderHumanoids = {
+    globalThis.Open2dClientRenderHumanoids = {
       createHumanoidRenderTools: () => ({
         drawHumanoid: () => {}
       })
     };
     global.document = createMockDocument();
 
-    const renderer = globalThis.VibeClientPixiWorldRenderer.createPixiWorldRenderer({
+    const renderer = globalThis.Open2dClientPixiWorldRenderer.createPixiWorldRenderer({
       PIXI,
       canvasElement: {
         width: 800,
@@ -446,7 +446,7 @@ describe("VibeClientPixiWorldRenderer", () => {
     require(modulePath);
 
     const { PIXI, graphicsInstances } = createPixiStub();
-    globalThis.VibeClientRenderHumanoids = {
+    globalThis.Open2dClientRenderHumanoids = {
       createHumanoidRenderTools: () => ({
         drawHumanoid: () => {}
       })
@@ -455,7 +455,7 @@ describe("VibeClientPixiWorldRenderer", () => {
     let now = 200;
     jest.spyOn(global.performance, "now").mockImplementation(() => now);
 
-    const renderer = globalThis.VibeClientPixiWorldRenderer.createPixiWorldRenderer({
+    const renderer = globalThis.Open2dClientPixiWorldRenderer.createPixiWorldRenderer({
       PIXI,
       canvasElement: {
         width: 800,

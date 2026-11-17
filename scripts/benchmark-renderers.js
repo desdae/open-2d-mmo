@@ -94,27 +94,27 @@ async function runScenario(port, rendererMode) {
 
   try {
     await page.goto(`http://127.0.0.1:${port}/?renderer=${rendererMode}`, { waitUntil: "networkidle" });
-    await page.waitForFunction(() => !!window.__vibemmoTest && typeof window.__vibemmoTest.connectAndJoin === "function");
+    await page.waitForFunction(() => !!window.__open2dmmoTest && typeof window.__open2dmmoTest.connectAndJoin === "function");
     await page.evaluate(
       ({ rendererMode }) => {
-        window.__vibemmoTest.connectAndJoin(`bench-${rendererMode}`, "mage", true);
+        window.__open2dmmoTest.connectAndJoin(`bench-${rendererMode}`, "mage", true);
       },
       { rendererMode }
     );
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return !!state.self && state.self.isAdmin === true;
     }, null, { timeout: 20000 });
-    await page.evaluate((rendererMode) => window.__vibemmoTest.setRendererMode(rendererMode), rendererMode);
-    await page.waitForFunction((rendererMode) => window.__vibemmoTest.getRendererMode() === rendererMode, rendererMode);
+    await page.evaluate((rendererMode) => window.__open2dmmoTest.setRendererMode(rendererMode), rendererMode);
+    await page.waitForFunction((rendererMode) => window.__open2dmmoTest.getRendererMode() === rendererMode, rendererMode);
 
-    await page.evaluate(() => window.__vibemmoTest.setMove(0, -1));
+    await page.evaluate(() => window.__open2dmmoTest.setMove(0, -1));
     await delay(4200);
-    await page.evaluate(() => window.__vibemmoTest.stopMove());
+    await page.evaluate(() => window.__open2dmmoTest.stopMove());
     await delay(1200);
-    await page.evaluate(() => window.__vibemmoTest.send({ type: "admin_spawn_benchmark_scene" }));
+    await page.evaluate(() => window.__open2dmmoTest.send({ type: "admin_spawn_benchmark_scene" }));
     await page.waitForFunction(() => {
-      const state = window.__vibemmoTest.getState();
+      const state = window.__open2dmmoTest.getState();
       return Array.isArray(state.mobs) && state.mobs.length >= 16 && Array.isArray(state.players) && state.players.length >= 6;
     }, null, { timeout: 12000 });
     await delay(1200);
@@ -125,9 +125,9 @@ async function runScenario(port, rendererMode) {
     const samples = [];
     for (let i = 0; i < TOTAL_SAMPLES; i += 1) {
       const snapshot = await page.evaluate(() => {
-        const state = window.__vibemmoTest.getState();
+        const state = window.__open2dmmoTest.getState();
         if (state.self) {
-          window.__vibemmoTest.castAtWorld("fireball", Number(state.self.x) + 6, Number(state.self.y) - 6);
+          window.__open2dmmoTest.castAtWorld("fireball", Number(state.self.x) + 6, Number(state.self.y) - 6);
         }
         return {
           debugMetrics: state.debugMetrics || null,

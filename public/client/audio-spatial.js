@@ -1,4 +1,4 @@
-(function initVibeClientSpatialAudio(globalScope) {
+(function initOpen2dClientSpatialAudio(globalScope) {
   "use strict";
 
   function fallbackClamp(value, min, max) {
@@ -273,7 +273,7 @@
     };
   }
 
-  globalScope.VibeClientSpatialAudio = Object.freeze({
+  globalScope.Open2dClientSpatialAudio = Object.freeze({
     createSpatialAudioTools
   });
 })(globalThis);

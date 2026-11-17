@@ -1,15 +1,15 @@
 const path = require("path");
 
-describe("VibeClientConfigBootstrap", () => {
+describe("Open2dClientConfigBootstrap", () => {
   const modulePath = path.resolve(__dirname, "../../public/client/config-bootstrap.js");
 
   beforeEach(() => {
     jest.resetModules();
-    delete globalThis.VibeClientConfigBootstrap;
+    delete globalThis.Open2dClientConfigBootstrap;
   });
 
   afterEach(() => {
-    delete globalThis.VibeClientConfigBootstrap;
+    delete globalThis.Open2dClientConfigBootstrap;
   });
 
   test("deduplicates concurrent join config loads", async () => {
@@ -19,7 +19,7 @@ describe("VibeClientConfigBootstrap", () => {
       await Promise.resolve();
       return true;
     });
-    const tools = globalThis.VibeClientConfigBootstrap.createConfigBootstrapTools({
+    const tools = globalThis.Open2dClientConfigBootstrap.createConfigBootstrapTools({
       loadJoinConfig,
       loadInitialConfig: async () => true,
       scheduleTask: () => {}
@@ -42,7 +42,7 @@ describe("VibeClientConfigBootstrap", () => {
       await Promise.resolve();
       return true;
     });
-    const tools = globalThis.VibeClientConfigBootstrap.createConfigBootstrapTools({
+    const tools = globalThis.Open2dClientConfigBootstrap.createConfigBootstrapTools({
       loadJoinConfig: async () => true,
       loadInitialConfig,
       scheduleTask: () => {}
@@ -61,7 +61,7 @@ describe("VibeClientConfigBootstrap", () => {
 
     const scheduledTasks = [];
     const preloadAudio = jest.fn();
-    const tools = globalThis.VibeClientConfigBootstrap.createConfigBootstrapTools({
+    const tools = globalThis.Open2dClientConfigBootstrap.createConfigBootstrapTools({
       loadJoinConfig: async () => true,
       loadInitialConfig: async () => true,
       scheduleTask: (task) => {

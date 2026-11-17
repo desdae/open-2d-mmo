@@ -1,4 +1,4 @@
-(function initVibeClientNetworkSession(globalScope) {
+(function initOpen2dClientNetworkSession(globalScope) {
   "use strict";
 
   function createNetworkSessionTools(rawDeps) {
@@ -84,7 +84,7 @@
     };
   }
 
-  globalScope.VibeClientNetworkSession = Object.freeze({
+  globalScope.Open2dClientNetworkSession = Object.freeze({
     createNetworkSessionTools
   });
 })(globalThis);

@@ -1,4 +1,4 @@
-(function initVibeClientCanvasBackgroundCache(globalScope) {
+(function initOpen2dClientCanvasBackgroundCache(globalScope) {
   "use strict";
 
   function createCanvasBackgroundCache(rawDeps) {
@@ -170,7 +170,7 @@
     };
   }
 
-  globalScope.VibeClientCanvasBackgroundCache = Object.freeze({
+  globalScope.Open2dClientCanvasBackgroundCache = Object.freeze({
     createCanvasBackgroundCache
   });
 })(globalThis);

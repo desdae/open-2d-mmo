@@ -6,7 +6,7 @@ const path = require("path");
 const { createGameHttpServer } = require("../network/http-server");
 
 function makeTempPublicDir() {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vibemmo-http-server-"));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "open2dmmo-http-server-"));
   fs.writeFileSync(path.join(tempRoot, "index.html"), "<!doctype html><html><body>ok</body></html>", "utf8");
   return tempRoot;
 }

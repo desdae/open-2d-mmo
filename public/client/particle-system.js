@@ -1,4 +1,4 @@
-(function initVibeClientParticleSystem(globalScope) {
+(function initOpen2dClientParticleSystem(globalScope) {
   "use strict";
 
   function defaultClamp(value, min, max) {
@@ -339,7 +339,7 @@
     };
   }
 
-  globalScope.VibeClientParticleSystem = Object.freeze({
+  globalScope.Open2dClientParticleSystem = Object.freeze({
     createParticleSystemTools
   });
 })(globalThis);

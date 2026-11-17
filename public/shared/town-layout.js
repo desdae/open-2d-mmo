@@ -4,7 +4,7 @@
     return;
   }
   const root = typeof globalThis !== "undefined" ? globalThis : window;
-  root.VibeTownLayout = rootFactory();
+  root.Open2dTownLayout = rootFactory();
 })(function buildTownLayoutModule() {
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));

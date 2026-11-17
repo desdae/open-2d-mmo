@@ -1,4 +1,4 @@
-(function initVibeClientAbilityRuntime(globalScope) {
+(function initOpen2dClientAbilityRuntime(globalScope) {
   "use strict";
 
   function fallbackClamp(value, min, max) {
@@ -332,7 +332,7 @@
     };
   }
 
-  globalScope.VibeClientAbilityRuntime = Object.freeze({
+  globalScope.Open2dClientAbilityRuntime = Object.freeze({
     createAbilityRuntimeTools
   });
 })(globalThis);

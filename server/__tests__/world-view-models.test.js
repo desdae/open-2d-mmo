@@ -1,21 +1,21 @@
 const path = require("path");
 
-describe("VibeClientWorldViewModels", () => {
+describe("Open2dClientWorldViewModels", () => {
   const modulePath = path.resolve(__dirname, "../../public/client/world-view-models.js");
 
   beforeEach(() => {
     jest.resetModules();
-    delete globalThis.VibeClientWorldViewModels;
+    delete globalThis.Open2dClientWorldViewModels;
   });
 
   afterEach(() => {
-    delete globalThis.VibeClientWorldViewModels;
+    delete globalThis.Open2dClientWorldViewModels;
   });
 
   test("reuses entity wrapper objects across frames", () => {
     require(modulePath);
 
-    const tools = globalThis.VibeClientWorldViewModels.createWorldViewModelTools({
+    const tools = globalThis.Open2dClientWorldViewModels.createWorldViewModelTools({
       gameState: { self: { id: "self-live" } },
       getActiveMobAttackState: (id) => ({ id, active: true }),
       getMobAttackVisualType: () => "sword",
