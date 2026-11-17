@@ -1,4 +1,4 @@
-(function initVibeClientInputBootstrap(globalScope) {
+(function initOpen2dClientInputBootstrap(globalScope) {
   "use strict";
 
   function createInputBootstrap(rawDeps) {
@@ -7,9 +7,73 @@
       return null;
     }
 
+    function getCanvasTouchPoint(touch) {
+      const rect = deps.canvas.getBoundingClientRect();
+      return {
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top
+      };
+    }
+
+    const touchTapState = {
+      active: false,
+      touchId: null,
+      startX: 0,
+      startY: 0,
+      moved: false
+    };
+
+    function resetTouchTapState() {
+      touchTapState.active = false;
+      touchTapState.touchId = null;
+      touchTapState.startX = 0;
+      touchTapState.startY = 0;
+      touchTapState.moved = false;
+    }
+
+    function shouldStartTouchJoystick(point) {
+      const width = Math.max(1, Number(deps.canvas.clientWidth) || Number(deps.canvas.width) || 1);
+      const height = Math.max(1, Number(deps.canvas.clientHeight) || Number(deps.canvas.height) || 1);
+      const zoneMaxX = width * 0.44;
+      const zoneMinY = height * 0.4;
+      return Number(point.x) <= zoneMaxX && Number(point.y) >= zoneMinY;
+    }
+
+    function tryTouchWorldInteraction() {
+      if (deps.tryContextVendorInteraction()) {
+        return true;
+      }
+      if (deps.tryContextQuestNpcInteraction()) {
+        return true;
+      }
+      if (typeof deps.tryNearbyQuestNpcInteraction === "function" && deps.tryNearbyQuestNpcInteraction()) {
+        return true;
+      }
+      if (typeof deps.tryContextResourceInteraction === "function" && deps.tryContextResourceInteraction()) {
+        return true;
+      }
+      if (deps.tryContextLootPickup()) {
+        return true;
+      }
+      deps.tryPrimaryAutoAction(true);
+      return true;
+    }
+
     function onKeyDown(event) {
       deps.resumeSpatialAudioContext();
       if (event.repeat) {
+        return;
+      }
+
+      // Don't handle movement keys when typing in input fields (chat, etc.)
+      const activeElement = deps.document.activeElement;
+      const isTyping = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.isContentEditable
+      );
+      if (isTyping) {
+        // Allow typing in input fields but don't trigger movement
         return;
       }
 
@@ -37,8 +101,30 @@
         return;
       }
 
+      if (event.code === "KeyT" && !deps.gameUI.classList.contains("hidden")) {
+        deps.toggleTalentPanel();
+        event.preventDefault();
+        return;
+      }
+
       if (event.code === "KeyK" && !deps.gameUI.classList.contains("hidden")) {
         deps.toggleDpsPanel();
+        event.preventDefault();
+        return;
+      }
+
+      if (event.code === "KeyO" && !deps.gameUI.classList.contains("hidden") && typeof deps.toggleCraftingPanel === "function") {
+        deps.toggleCraftingPanel();
+        event.preventDefault();
+        return;
+      }
+
+      if (event.code === "KeyQ" && !deps.gameUI.classList.contains("hidden")) {
+        if (deps.questUiTools && typeof deps.questUiTools.toggleQuestPanel === "function") {
+          deps.questUiTools.toggleQuestPanel();
+        } else if (deps.toggleQuestPanel) {
+          deps.toggleQuestPanel();
+        }
         event.preventDefault();
         return;
       }
@@ -54,6 +140,12 @@
 
       if (event.code in deps.keys) {
         deps.cancelAutoVendorInteraction();
+        if (typeof deps.cancelAutoQuestInteraction === "function") {
+          deps.cancelAutoQuestInteraction();
+        }
+        if (typeof deps.cancelAutoResourceInteraction === "function") {
+          deps.cancelAutoResourceInteraction();
+        }
         deps.cancelAutoLootPickup();
         deps.keys[event.code] = true;
         deps.sendMove();
@@ -77,15 +169,28 @@
           changed = true;
         }
       }
+      if (typeof deps.resetTouchJoystick === "function" && deps.resetTouchJoystick()) {
+        changed = true;
+      }
+      if (typeof deps.resetMobileAbilityAim === "function" && deps.resetMobileAbilityAim()) {
+        changed = true;
+      }
       if (changed) {
         deps.sendMove();
       }
       deps.mouseState.leftDown = false;
       deps.cancelAutoVendorInteraction();
+      if (typeof deps.cancelAutoQuestInteraction === "function") {
+        deps.cancelAutoQuestInteraction();
+      }
+      if (typeof deps.cancelAutoResourceInteraction === "function") {
+        deps.cancelAutoResourceInteraction();
+      }
       deps.cancelAutoLootPickup();
       deps.clearDragState();
       deps.resetAbilityChanneling();
       deps.stopAllSpatialLoops();
+      resetTouchTapState();
     }
 
     function onMouseMove(event) {
@@ -100,6 +205,12 @@
 
       deps.updateMouseScreenPosition(event);
       deps.cancelAutoVendorInteraction();
+      if (typeof deps.cancelAutoQuestInteraction === "function") {
+        deps.cancelAutoQuestInteraction();
+      }
+      if (typeof deps.cancelAutoResourceInteraction === "function") {
+        deps.cancelAutoResourceInteraction();
+      }
       deps.cancelAutoLootPickup();
       deps.mouseState.leftDown = true;
       deps.tryPrimaryAutoAction(true);
@@ -118,10 +229,150 @@
       if (deps.tryContextVendorInteraction()) {
         return;
       }
+      if (deps.tryContextQuestNpcInteraction()) {
+        return;
+      }
+      if (typeof deps.tryContextResourceInteraction === "function" && deps.tryContextResourceInteraction()) {
+        return;
+      }
       if (deps.tryContextLootPickup()) {
         return;
       }
       deps.executeBoundAction("mouse_right");
+    }
+
+    function onTouchStart(event) {
+      if (typeof deps.isTouchJoystickEnabled === "function" && !deps.isTouchJoystickEnabled()) {
+        return;
+      }
+      if (typeof deps.hasActiveMobileAbilityAim === "function" && deps.hasActiveMobileAbilityAim()) {
+        event.preventDefault();
+        return;
+      }
+      if (typeof deps.hasActiveTouchJoystick === "function" && deps.hasActiveTouchJoystick()) {
+        return;
+      }
+      const touch = event.changedTouches && event.changedTouches.length ? event.changedTouches[0] : null;
+      if (!touch) {
+        return;
+      }
+      const point = getCanvasTouchPoint(touch);
+      const useJoystick = shouldStartTouchJoystick(point);
+      deps.resumeSpatialAudioContext();
+      if (!useJoystick) {
+        deps.updateMouseScreenPosition(touch);
+      }
+      deps.cancelAutoVendorInteraction();
+      if (typeof deps.cancelAutoQuestInteraction === "function") {
+        deps.cancelAutoQuestInteraction();
+      }
+      if (typeof deps.cancelAutoResourceInteraction === "function") {
+        deps.cancelAutoResourceInteraction();
+      }
+      deps.cancelAutoLootPickup();
+      resetTouchTapState();
+      if (useJoystick && typeof deps.beginTouchJoystick === "function") {
+        deps.beginTouchJoystick(touch.identifier, point.x, point.y);
+        deps.sendMove();
+        event.preventDefault();
+        return;
+      }
+      touchTapState.active = true;
+      touchTapState.touchId = touch.identifier;
+      touchTapState.startX = Number(point.x) || 0;
+      touchTapState.startY = Number(point.y) || 0;
+      touchTapState.moved = false;
+      event.preventDefault();
+    }
+
+    function onTouchMove(event) {
+      if (typeof deps.hasActiveMobileAbilityAim === "function" && deps.hasActiveMobileAbilityAim()) {
+        return;
+      }
+      if (touchTapState.active) {
+        const touches = event.changedTouches || [];
+        for (let index = 0; index < touches.length; index += 1) {
+          const touch = touches[index];
+          if (touch.identifier !== touchTapState.touchId) {
+            continue;
+          }
+          const point = getCanvasTouchPoint(touch);
+          deps.updateMouseScreenPosition(touch);
+          const moveDistance = Math.hypot(
+            (Number(point.x) || 0) - touchTapState.startX,
+            (Number(point.y) || 0) - touchTapState.startY
+          );
+          if (moveDistance > 14) {
+            touchTapState.moved = true;
+          }
+          event.preventDefault();
+          return;
+        }
+      }
+      if (typeof deps.hasActiveTouchJoystick !== "function" || !deps.hasActiveTouchJoystick()) {
+        return;
+      }
+      const activeId = typeof deps.getActiveTouchJoystickId === "function" ? deps.getActiveTouchJoystickId() : null;
+      if (activeId === null || activeId === undefined) {
+        return;
+      }
+      const touches = event.changedTouches || [];
+      for (let index = 0; index < touches.length; index += 1) {
+        const touch = touches[index];
+        if (touch.identifier !== activeId) {
+          continue;
+        }
+        const point = getCanvasTouchPoint(touch);
+        if (typeof deps.updateTouchJoystick === "function") {
+          deps.updateTouchJoystick(point.x, point.y);
+          deps.sendMove();
+          event.preventDefault();
+        }
+        return;
+      }
+    }
+
+    function onTouchEnd(event) {
+      if (typeof deps.hasActiveMobileAbilityAim === "function" && deps.hasActiveMobileAbilityAim()) {
+        return;
+      }
+      if (touchTapState.active) {
+        const touches = event.changedTouches || [];
+        for (let index = 0; index < touches.length; index += 1) {
+          const touch = touches[index];
+          if (touch.identifier !== touchTapState.touchId) {
+            continue;
+          }
+          deps.updateMouseScreenPosition(touch);
+          const shouldInteract = !touchTapState.moved && event.type !== "touchcancel";
+          resetTouchTapState();
+          if (shouldInteract) {
+            tryTouchWorldInteraction();
+          }
+          event.preventDefault();
+          return;
+        }
+      }
+      if (typeof deps.hasActiveTouchJoystick !== "function" || !deps.hasActiveTouchJoystick()) {
+        return;
+      }
+      const activeId = typeof deps.getActiveTouchJoystickId === "function" ? deps.getActiveTouchJoystickId() : null;
+      if (activeId === null || activeId === undefined) {
+        return;
+      }
+      const touches = event.changedTouches || [];
+      for (let index = 0; index < touches.length; index += 1) {
+        const touch = touches[index];
+        if (touch.identifier !== activeId) {
+          continue;
+        }
+        if (typeof deps.endTouchJoystick === "function") {
+          deps.endTouchJoystick();
+          deps.sendMove();
+          event.preventDefault();
+        }
+        return;
+      }
     }
 
     function onJoinSubmit(event) {
@@ -163,6 +414,10 @@
       deps.canvas.addEventListener("mousedown", onMouseDown);
       deps.windowObject.addEventListener("mouseup", onMouseUp);
       deps.canvas.addEventListener("contextmenu", onContextMenu);
+      deps.canvas.addEventListener("touchstart", onTouchStart, { passive: false });
+      deps.windowObject.addEventListener("touchmove", onTouchMove, { passive: false });
+      deps.windowObject.addEventListener("touchend", onTouchEnd, { passive: false });
+      deps.windowObject.addEventListener("touchcancel", onTouchEnd, { passive: false });
       deps.joinForm.addEventListener("submit", onJoinSubmit);
 
       globalScope.setInterval(deps.updateDebugPanel, 250);
@@ -170,10 +425,21 @@
       globalScope.setInterval(deps.refreshAdminBotList, 1500);
       globalScope.setInterval(deps.tryPrimaryAutoAction, 50);
       globalScope.setInterval(deps.updateAutoVendorInteraction, 75);
+      if (typeof deps.updateAutoQuestInteraction === "function") {
+        globalScope.setInterval(deps.updateAutoQuestInteraction, 75);
+      }
+      if (typeof deps.updateAutoResourceInteraction === "function") {
+        globalScope.setInterval(deps.updateAutoResourceInteraction, 75);
+      }
       globalScope.setInterval(deps.updateAutoLootPickup, 75);
       deps.initializeDpsPanel();
-      deps.loadInitialGameConfig();
+      if (typeof deps.primeJoinScreenConfig === "function") {
+        deps.primeJoinScreenConfig();
+      }
       requestFrame(deps.render);
+      deps.windowObject.setTimeout(() => {
+        deps.loadInitialGameConfig();
+      }, 0);
     }
 
     return {
@@ -181,7 +447,7 @@
     };
   }
 
-  globalScope.VibeClientInputBootstrap = Object.freeze({
+  globalScope.Open2dClientInputBootstrap = Object.freeze({
     createInputBootstrap
   });
 })(globalThis);

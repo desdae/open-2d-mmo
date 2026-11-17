@@ -1,3 +1,7 @@
+const { createEffectEngine } = require("./effects/effect-engine");
+const { buildHitEffectDefsFromAbilityDef } = require("./effects/hit-effect-defs");
+const { normalizeId } = require("../utils/id-utils");
+
 function defaultClamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -12,6 +16,14 @@ function createMobCombatEffectTools(options = {}) {
   const applyDamageToMob = typeof options.applyDamageToMob === "function" ? options.applyDamageToMob : () => 0;
   const getAbilityDotDamageRange =
     typeof options.getAbilityDotDamageRange === "function" ? options.getAbilityDotDamageRange : () => [0, 0];
+  const getPlayerById = typeof options.getPlayerById === "function" ? options.getPlayerById : () => null;
+  const normalizeIdFn = typeof options.normalizeId === "function" ? options.normalizeId : normalizeId;
+  const effectEngine = createEffectEngine({ clamp, randomInt });
+
+  const tools = {
+    // Mutable callback; server.js wires talent handlers after tool creation.
+    onTalentSpellHit: typeof options.onTalentSpellHit === "function" ? options.onTalentSpellHit : null
+  };
 
   function stunMob(mob, durationMs, now = Date.now()) {
     if (!mob) {
@@ -75,9 +87,10 @@ function createMobCombatEffectTools(options = {}) {
     }
     const tickIntervalMs = 1000;
     const nextEndsAt = now + duration;
+    const normalizedOwnerId = normalizeIdFn(ownerId);
     const existing = mob.activeDots.get(schoolKey);
     if (existing) {
-      existing.ownerId = ownerId ? String(ownerId) : existing.ownerId;
+      existing.ownerId = normalizedOwnerId || existing.ownerId;
       existing.damageMin = Math.max(Number(existing.damageMin) || 0, dotMin);
       existing.damageMax = Math.max(Number(existing.damageMax) || existing.damageMin, dotMax);
       existing.endsAt = Math.max(Number(existing.endsAt) || 0, nextEndsAt);
@@ -86,7 +99,7 @@ function createMobCombatEffectTools(options = {}) {
     } else {
       mob.activeDots.set(schoolKey, {
         school: schoolKey,
-        ownerId: ownerId ? String(ownerId) : "",
+        ownerId: normalizedOwnerId || "",
         damageMin: dotMin,
         damageMax: dotMax,
         tickIntervalMs,
@@ -163,37 +176,41 @@ function createMobCombatEffectTools(options = {}) {
     if (!mob || !mob.alive || dealtDamage <= 0 || !abilityDef) {
       return;
     }
-    const slowDurationMs = Math.max(0, Number(abilityDef.slowDurationMs) || 0);
-    const slowMultiplier = clamp(Number(abilityDef.slowMultiplier) || 1, 0.1, 1);
-    if (slowDurationMs > 0 && slowMultiplier < 1) {
-      applySlowToMob(mob, slowMultiplier, slowDurationMs, now);
+
+    const normalizedOwnerId = normalizeIdFn(ownerId);
+    const hitEffectDefs = buildHitEffectDefsFromAbilityDef(abilityDef, abilityLevel, getAbilityDotDamageRange);
+    if (hitEffectDefs.length) {
+      const compiled = effectEngine.compile(hitEffectDefs, { defaultTrigger: "onHit" });
+      effectEngine.run(compiled, "onHit", {
+        now,
+        source: { id: normalizedOwnerId || "" },
+        target: mob,
+        ops: {
+          applySlow: (target, multiplier, durationMs, appliedAt) =>
+            applySlowToMob(target, multiplier, durationMs, appliedAt),
+          applyStun: (target, durationMs, appliedAt) => stunMob(target, durationMs, appliedAt),
+          applyDot: (target, dotOwnerId, school, damageMin, damageMax, durationMs, appliedAt) =>
+            applyDotToMob(target, dotOwnerId, school, damageMin, damageMax, durationMs, appliedAt)
+        }
+      });
     }
-    const stunDurationMs = Math.max(0, Number(abilityDef.stunDurationMs) || 0);
-    if (stunDurationMs > 0) {
-      stunMob(mob, stunDurationMs, now);
-    }
-    const dotDurationMs = Math.max(0, Number(abilityDef.dotDurationMs) || 0);
-    const [dotDamageMin, dotDamageMax] = getAbilityDotDamageRange(abilityDef, abilityLevel);
-    if (dotDurationMs > 0 && dotDamageMax > 0) {
-      applyDotToMob(
-        mob,
-        ownerId,
-        String(abilityDef.dotSchool || "generic"),
-        dotDamageMin,
-        dotDamageMax,
-        dotDurationMs,
-        now
-      );
+    
+    // Trigger talent on-spell-hit effects
+    const ownerPlayer = normalizedOwnerId ? getPlayerById(normalizedOwnerId) : null;
+    if (ownerPlayer) {
+      const handler = typeof tools.onTalentSpellHit === "function" ? tools.onTalentSpellHit : null;
+      if (handler) {
+        handler(ownerPlayer, mob, abilityDef, now);
+      }
     }
   }
 
-  return {
-    stunMob,
-    applySlowToMob,
-    applyDotToMob,
-    tickMobDotEffects,
-    applyAbilityHitEffectsToMob
-  };
+  tools.stunMob = stunMob;
+  tools.applySlowToMob = applySlowToMob;
+  tools.applyDotToMob = applyDotToMob;
+  tools.tickMobDotEffects = tickMobDotEffects;
+  tools.applyAbilityHitEffectsToMob = applyAbilityHitEffectsToMob;
+  return tools;
 }
 
 module.exports = {

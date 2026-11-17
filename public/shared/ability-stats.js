@@ -4,7 +4,7 @@
     return;
   }
   const root = typeof globalThis !== "undefined" ? globalThis : window;
-  root.VibeAbilityStats = rootFactory();
+  root.Open2dAbilityStats = rootFactory();
 })(function buildAbilityStats() {
   function getAbilityDamageRange(abilityDef, level) {
     const lvl = Math.max(1, Math.floor(Number(level) || 1));

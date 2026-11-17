@@ -16,7 +16,11 @@ function createMobTickSystem({
   normalizeDirection,
   clampToSpawnRadius,
   townLayout,
+  ensureObservedSpawnerCoverage,
+  refreshMobObservation,
+  despawnUnobservedMobs,
   respawnMob,
+  isSpawnerObserved,
   tickMobDotEffects,
   clearMobCast,
   completeMobAbilityCast,
@@ -117,9 +121,19 @@ function createMobTickSystem({
     const now = Date.now();
     const dt = tickMs / 1000;
 
+    if (typeof refreshMobObservation === "function") {
+      refreshMobObservation(now);
+    }
+    if (typeof despawnUnobservedMobs === "function") {
+      despawnUnobservedMobs(now);
+    }
+    if (typeof ensureObservedSpawnerCoverage === "function") {
+      ensureObservedSpawnerCoverage(now);
+    }
+
     for (const mob of mobs.values()) {
       if (!mob.alive) {
-        if (now >= mob.respawnAt) {
+        if (now >= mob.respawnAt && (!isSpawnerObserved || isSpawnerObserved(mob.spawnX, mob.spawnY))) {
           respawnMob(mob);
         }
         continue;
@@ -193,11 +207,40 @@ function createMobTickSystem({
       }
 
       const combat = getMobCombatProfile(mob);
-      const behavior = String(combat.behavior || "melee").toLowerCase() === "ranged" ? "ranged" : "melee";
+      const combatBehavior = String(combat.behavior || "melee").toLowerCase();
+      const behavior = combatBehavior === "ranged" ? "ranged" : combatBehavior === "flee" ? "flee" : "melee";
       const aggroRange = Math.max(0.5, Number(combat.aggroRange) || mobAggroRange);
       const nearestAggro = forcedTarget ? null : getNearestAggroPlayer(mob, aggroRange);
       const aggroPlayer = forcedTarget || (nearestAggro ? nearestAggro.player : null);
       const dist = aggroPlayer ? distance(mob, aggroPlayer) : Infinity;
+
+      if (behavior === "flee") {
+        if (aggroPlayer) {
+          mob.lastThreatPosition = { x: Number(aggroPlayer.x) || 0, y: Number(aggroPlayer.y) || 0 };
+          mob.panicUntil = Math.max(
+            Number(mob.panicUntil) || 0,
+            now + Math.max(1200, Number(combat.panicDurationMs) || 0)
+          );
+        }
+        const fleeSource =
+          aggroPlayer ||
+          ((Number(mob.panicUntil) || 0) > now && mob.lastThreatPosition && typeof mob.lastThreatPosition === "object"
+            ? mob.lastThreatPosition
+            : null);
+        if (fleeSource) {
+          const fleeDir = normalizeDirection(mob.x - fleeSource.x, mob.y - fleeSource.y);
+          if (fleeDir) {
+            const leashRadius = forcedTarget ? mobProvokedLeashRadius : getMobLeashRadius(mob, now);
+            moveMobWithTownGuard(
+              mob,
+              mob.x + fleeDir.dx * mobSpeed * Math.max(1, Number(combat.fleeSpeedMultiplier) || 1.1) * dt,
+              mob.y + fleeDir.dy * mobSpeed * Math.max(1, Number(combat.fleeSpeedMultiplier) || 1.1) * dt,
+              leashRadius
+            );
+          }
+          continue;
+        }
+      }
 
       if (aggroPlayer) {
         const castedAbility = tryMobCastConfiguredAbility(mob, aggroPlayer, dist, now);

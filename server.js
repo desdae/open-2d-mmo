@@ -1,7 +1,9 @@
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
+const crypto = require("crypto");
 const { WebSocketServer } = require("ws");
+const { normalizeId, mapGet, mapHas } = require("./server/utils/id-utils");
 const townLayoutTools = require("./public/shared/town-layout");
 const { executeAbilityByKind } = require("./server/ability-handlers");
 const { createAbilityHandlerContext } = require("./server/ability-handlers/context");
@@ -19,11 +21,13 @@ const {
   createClassAbilityDefsBroadcaster
 } = require("./server/runtime/config-helpers");
 const { createRuntimeBootstrap } = require("./server/runtime/runtime-bootstrap");
+const { createBenchmarkSceneTools } = require("./server/runtime/benchmark-scene");
 const { sendJson, sendBinary } = require("./server/network/transport");
 const { registerWsConnections } = require("./server/network/ws-connections");
 const { createStateBroadcaster } = require("./server/network/state-broadcast");
 const { createGameHttpServer } = require("./server/network/http-server");
 const { createSoundManifestBuilder } = require("./server/network/sound-manifest");
+const { createPlayerVisibilityTools } = require("./server/network/player-visibility");
 const { createEntityUpdatePacketBuilder } = require("./server/network/entity-update-packet");
 const { serializePlayer, serializeMob, serializeLootBag } = require("./server/network/entity-serializers");
 const { createEventBuilders } = require("./server/network/event-builders");
@@ -35,6 +39,11 @@ const {
   loadServerConfigFromDisk,
   formatServerConfigForLog
 } = require("./server/config/server-config");
+const {
+  MAX_CHAT_MESSAGE_LENGTH,
+  TOWN_SPAWN_MAX_ATTEMPTS
+} = require("./config/game-constants");
+const { sanitizeChatText, sanitizeChatSender } = require("./server/network/chat-sanitization");
 const { loadGameplayRuntimeConfig } = require("./server/config/gameplay-runtime");
 const { loadItemConfigFromDisk } = require("./server/config/item-config");
 const { loadEquipmentConfigFromDisk } = require("./server/config/equipment-config");
@@ -58,6 +67,11 @@ const { createMobAbilityTools } = require("./server/gameplay/mob-abilities");
 const { createMobBehaviorTools } = require("./server/gameplay/mob-behavior");
 const { createMobCombatTools } = require("./server/gameplay/mob-combat");
 const { createMobLifecycleTools } = require("./server/gameplay/mob-lifecycle");
+const { createMobScalingTools } = require("./server/gameplay/mob-scaling");
+const { createBiomeResolver } = require("./server/gameplay/biome-resolver");
+const { createResourceRegistry } = require("./server/gameplay/resource-registry");
+const { createResourceGenerationTools } = require("./server/gameplay/resource-generation");
+const { createCraftingTools } = require("./server/gameplay/crafting");
 const { pickClusterDef } = require("./server/gameplay/cluster-spawn");
 const { createSpatialTools } = require("./server/gameplay/spatial-tools");
 const { createPlayerAbilityTools } = require("./server/gameplay/player-abilities");
@@ -73,7 +87,11 @@ const { createProjectileSpawnTools } = require("./server/gameplay/projectile-spa
 const { createPlayerCommandTools } = require("./server/gameplay/player-commands");
 const { createPlayerFactory } = require("./server/gameplay/player-factory");
 const { createEquipmentTools } = require("./server/gameplay/equipment");
+const { createPlayerBuffTools } = require("./server/gameplay/player-buffs");
 const { createVendorTools } = require("./server/gameplay/vendor");
+const { createQuestTools } = require("./server/gameplay/quests");
+const { createDialogueTools } = require("./server/gameplay/dialogue");
+const { createNormalizeItemEntries } = require("./server/gameplay/drops");
 const { createCoreServices } = require("./server/runtime/core-services");
 const { createBotTickSystem } = require("./server/runtime/bot-tick");
 const {
@@ -110,12 +128,18 @@ const APP_MODE = String(process.env.APP_MODE || process.env.NODE_ENV || "develop
 const IS_PROD_MODE = APP_MODE === "prod" || APP_MODE === "production";
 const MOB_CONFIG_PATH = path.join(__dirname, "data", "mobs.json");
 const ITEM_CONFIG_PATH = path.join(__dirname, "data", "items.json");
+const QUEST_REGION_CONFIG_PATH = path.join(__dirname, "data", "quest-regions.json");
 const GLOBAL_DROP_TABLE_PATH = path.join(__dirname, "data", "drop-tables.json");
 const SERVER_CONFIG_PATH = path.join(__dirname, "config", "server.json");
 const GAMEPLAY_CONFIG_PATH = path.join(__dirname, "config", "gameplay.json");
 const CLASS_CONFIG_PATH = path.join(__dirname, "data", "classes.json");
 const ABILITY_CONFIG_PATH = path.join(__dirname, "data", "abilities.json");
 const EQUIPMENT_CONFIG_PATH = path.join(__dirname, "data", "equipment.json");
+const TALENT_CONFIG_PATH = path.join(__dirname, "data", "talents.json");
+const SKILL_CONFIG_PATH = path.join(__dirname, "data", "skills.json");
+const BIOME_CONFIG_PATH = path.join(__dirname, "data", "biomes.json");
+const RESOURCE_CONFIG_PATH = path.join(__dirname, "data", "resources.json");
+const RECIPE_CONFIG_PATH = path.join(__dirname, "data", "recipes.json");
 
 const gameplayRuntime = loadGameplayRuntimeConfig(GAMEPLAY_CONFIG_PATH);
 const GAMEPLAY_CONFIG = gameplayRuntime.gameplayConfig;
@@ -123,6 +147,9 @@ const {
   mapWidth: MAP_WIDTH,
   mapHeight: MAP_HEIGHT,
   visibilityRange: VISIBILITY_RANGE,
+  maxViewportWidth: MAX_VIEWPORT_WIDTH,
+  maxViewportHeight: MAX_VIEWPORT_HEIGHT,
+  visibilityPaddingTiles: VISIBILITY_PADDING_TILES,
   townConfig: TOWN_CONFIG,
   tickMs: TICK_MS,
   basePlayerSpeed: BASE_PLAYER_SPEED,
@@ -148,7 +175,17 @@ const {
   inventoryCols: INVENTORY_COLS,
   inventoryRows: INVENTORY_ROWS,
   inventorySlotCount: INVENTORY_SLOT_COUNT,
-  copperItemId: ITEM_COPPER_ID
+  copperItemId: ITEM_COPPER_ID,
+  minSpawnRadiusFromCenter: MIN_SPAWN_RADIUS_FROM_CENTER,
+  observedSpawnPadding: OBSERVED_SPAWN_PADDING,
+  unobservedDespawnMs: UNOBSERVED_DESPAWN_MS,
+  mobBaseLevel: MOB_BASE_LEVEL,
+  mobLevelStartDistance: MOB_LEVEL_START_DISTANCE,
+  mobLevelDistance: MOB_LEVEL_DISTANCE,
+  mobLevelDistanceStep: MOB_LEVEL_DISTANCE_STEP,
+  mobLevelHealthMultiplier: MOB_LEVEL_HEALTH_MULTIPLIER,
+  mobLevelDamageMultiplier: MOB_LEVEL_DAMAGE_MULTIPLIER,
+  mobLevelSpeedMultiplier: MOB_LEVEL_SPEED_MULTIPLIER
 } = gameplayRuntime.constants;
 const DEFAULT_ABILITY_KIND = "meleeCone";
 
@@ -174,7 +211,7 @@ function randomTownInteriorSpawn() {
   const maxTileX = Math.max(minTileX, TOWN_LAYOUT.maxTileX - inset);
   const minTileY = Math.min(TOWN_LAYOUT.maxTileY, TOWN_LAYOUT.minTileY + inset);
   const maxTileY = Math.max(minTileY, TOWN_LAYOUT.maxTileY - inset);
-  for (let attempt = 0; attempt < 80; attempt += 1) {
+  for (let attempt = 0; attempt < TOWN_SPAWN_MAX_ATTEMPTS; attempt += 1) {
     const tileX = minTileX + Math.floor(Math.random() * (maxTileX - minTileX + 1));
     const tileY = minTileY + Math.floor(Math.random() * (maxTileY - minTileY + 1));
     const spawn = {
@@ -215,6 +252,63 @@ if (IS_PROD_MODE && selectedIndexFileName !== preferredIndexFileName) {
   console.warn("[server] Missing public/index.prod.html, falling back to index.dev.html");
 }
 const buildSoundManifest = createSoundManifestBuilder({ publicDir });
+function buildStaticClientConfigSnapshot() {
+  const snapshot = {
+    classes: CLASS_CONFIG.clientClassDefs,
+    abilities: ABILITY_CONFIG.clientAbilityDefs,
+    items: ITEM_CONFIG.clientItemDefs,
+    equipment: ITEM_CONFIG.clientEquipmentConfig || { itemSlots: [] },
+    sounds: buildSoundManifest()
+  };
+  const version = crypto
+    .createHash("sha1")
+    .update(JSON.stringify(snapshot))
+    .digest("hex")
+    .slice(0, 16);
+  return {
+    version,
+    ...snapshot
+  };
+}
+let staticClientConfigSnapshotCache = null;
+let joinClientConfigSnapshotCache = null;
+
+function invalidateStaticClientConfigSnapshots() {
+  staticClientConfigSnapshotCache = null;
+  joinClientConfigSnapshotCache = null;
+}
+
+function getStaticClientConfigSnapshot() {
+  if (!staticClientConfigSnapshotCache) {
+    staticClientConfigSnapshotCache = buildStaticClientConfigSnapshot();
+  }
+  return staticClientConfigSnapshotCache;
+}
+
+function buildJoinClientConfigSnapshot() {
+  return {
+    classes: (Array.isArray(CLASS_CONFIG.clientClassDefs) ? CLASS_CONFIG.clientClassDefs : []).map((entry) => ({
+      id: String(entry && entry.id || "").trim(),
+      name: String(entry && entry.name || entry && entry.id || "").trim()
+    })).filter((entry) => entry.id)
+  };
+}
+
+function getJoinClientConfigSnapshot() {
+  if (!joinClientConfigSnapshotCache) {
+    joinClientConfigSnapshotCache = buildJoinClientConfigSnapshot();
+  }
+  return joinClientConfigSnapshotCache;
+}
+const playerVisibilityTools = createPlayerVisibilityTools({
+  defaultVisibilityRange: VISIBILITY_RANGE,
+  maxViewportWidth: MAX_VIEWPORT_WIDTH,
+  maxViewportHeight: MAX_VIEWPORT_HEIGHT,
+  visibilityPaddingTiles: VISIBILITY_PADDING_TILES,
+  tileSize: 32
+});
+const getPlayerVisibilityExtents = playerVisibilityTools.getPlayerVisibilityExtents;
+const updatePlayerViewport = playerVisibilityTools.updatePlayerViewport;
 
 const abilityNormalizationTools = createAbilityNormalizationTools({
   defaultProjectileHitRadius: DEFAULT_PROJECTILE_HIT_RADIUS
@@ -264,6 +358,15 @@ try {
   );
 }
 let GLOBAL_DROP_CONFIG = { entries: [] };
+let ABILITY_CONFIG = loadAbilityConfig();
+const normalizeItemEntries = createNormalizeItemEntries({ itemDefs: ITEM_CONFIG.itemDefs });
+let CLASS_CONFIG = loadClassConfigFromDisk(
+  CLASS_CONFIG_PATH,
+  ABILITY_CONFIG.abilityDefs,
+  ITEM_CONFIG.itemDefs,
+  BASE_PLAYER_SPEED,
+  normalizeItemEntries
+);
 const coreServices = createCoreServices({
   sendJson,
   itemDefs: ITEM_CONFIG.itemDefs,
@@ -281,9 +384,11 @@ const coreServices = createCoreServices({
   getServerConfig: () => SERVER_CONFIG,
   getGlobalDropConfig: () => GLOBAL_DROP_CONFIG,
   mapWidth: MAP_WIDTH,
-  mapHeight: MAP_HEIGHT
+  mapHeight: MAP_HEIGHT,
+  talentConfigPath: TALENT_CONFIG_PATH,
+  classConfig: CLASS_CONFIG.classDefs,
+  skillDataPath: SKILL_CONFIG_PATH
 });
-const normalizeItemEntries = coreServices.normalizeItemEntries;
 const sendSelfProgress = coreServices.sendSelfProgress;
 const sendInventoryState = coreServices.sendInventoryState;
 const sendEquipmentState = coreServices.sendEquipmentState;
@@ -292,6 +397,7 @@ const createEmptyInventorySlots = coreServices.createEmptyInventorySlots;
 const addItemsToInventory = coreServices.addItemsToInventory;
 const mergeOrSwapInventorySlots = coreServices.mergeOrSwapInventorySlots;
 const consumeInventoryItem = coreServices.consumeInventoryItem;
+const getInventoryItemCount = coreServices.getInventoryItemCount;
 const syncPlayerCopperFromInventory = coreServices.syncPlayerCopperFromInventory;
 const expNeededForLevel = coreServices.expNeededForLevel;
 const grantPlayerExp = coreServices.grantPlayerExp;
@@ -305,15 +411,19 @@ const rollDropRules = coreServices.rollDropRules;
 const getDistanceFromCenter = coreServices.getDistanceFromCenter;
 const rollGlobalDropsForPlayer = coreServices.rollGlobalDropsForPlayer;
 const rollMobDrops = coreServices.rollMobDrops;
+const skillTools = coreServices.skillTools;
 
-let ABILITY_CONFIG = loadAbilityConfig();
-let CLASS_CONFIG = loadClassConfigFromDisk(
-  CLASS_CONFIG_PATH,
-  ABILITY_CONFIG.abilityDefs,
-  ITEM_CONFIG.itemDefs,
-  BASE_PLAYER_SPEED,
-  normalizeItemEntries
-);
+const biomeResolver = createBiomeResolver({
+  biomeDataPath: BIOME_CONFIG_PATH,
+  mapWidth: MAP_WIDTH,
+  mapHeight: MAP_HEIGHT,
+  townLayout: TOWN_LAYOUT
+});
+const resourceRegistry = createResourceRegistry({
+  resourceDataPath: RESOURCE_CONFIG_PATH,
+  itemDefsProvider: () => ITEM_CONFIG.itemDefs
+});
+
 let MOB_CONFIG = loadMobConfigFromDisk(
   MOB_CONFIG_PATH,
   ITEM_CONFIG.itemDefs,
@@ -334,25 +444,38 @@ GLOBAL_DROP_CONFIG = loadGlobalDropTableConfigFromDisk(
   MAP_HEIGHT
 );
 
+let craftingTools = null;
+
 const server = createGameHttpServer({
   http,
   publicDir,
   indexFileName: selectedIndexFileName,
-  getGameConfigPayload: () => ({
-    classes: CLASS_CONFIG.clientClassDefs,
-    abilities: ABILITY_CONFIG.clientAbilityDefs,
-    items: ITEM_CONFIG.clientItemDefs,
-    equipment: ITEM_CONFIG.clientEquipmentConfig,
-    gameplay: {
-      audio: GAMEPLAY_CONFIG.audio,
-      loot: GAMEPLAY_CONFIG.loot,
-      town: serializeTownLayout(TOWN_LAYOUT)
-    },
-    sounds: buildSoundManifest()
-  })
+  getJoinConfigPayload: () => getJoinClientConfigSnapshot(),
+  getGameConfigPayload: () => {
+    const staticClientConfig = getStaticClientConfigSnapshot();
+    return {
+      configVersion: staticClientConfig.version,
+      classes: staticClientConfig.classes,
+      abilities: staticClientConfig.abilities,
+      items: staticClientConfig.items,
+      equipment: staticClientConfig.equipment,
+      gameplay: {
+        audio: GAMEPLAY_CONFIG.audio,
+        loot: GAMEPLAY_CONFIG.loot,
+        town: serializeTownLayout(TOWN_LAYOUT),
+        crafting: {
+          recipes: craftingTools ? craftingTools.serializeRecipeDefs() : []
+        }
+      },
+      sounds: staticClientConfig.sounds
+    };
+  }
 });
 
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({
+  server,
+  maxPayload: Math.max(1024, Number(SERVER_CONFIG?.wsMaxPayloadBytes) || 65536)
+});
 
 const worldState = createWorldState();
 const players = worldState.players;
@@ -360,14 +483,36 @@ const projectiles = worldState.projectiles;
 const mobSpawners = worldState.mobSpawners;
 const mobs = worldState.mobs;
 const lootBags = worldState.lootBags;
+const resourceNodes = worldState.resourceNodes;
 const activeAreaEffects = worldState.activeAreaEffects;
 const allocatePlayerId = worldState.allocatePlayerId;
 const allocateProjectileId = worldState.allocateProjectileId;
 const allocateSpawnerId = worldState.allocateSpawnerId;
 const allocateMobId = worldState.allocateMobId;
 const allocateLootBagId = worldState.allocateLootBagId;
+const allocateResourceNodeId = worldState.allocateResourceNodeId;
 const allocateAreaEffectId = worldState.allocateAreaEffectId;
 const allocateItemInstanceId = worldState.allocateItemInstanceId;
+
+function broadcastChatMessage(sender, text) {
+  const senderName = sanitizeChatSender(sender && sender.name, "System");
+  const safeText = sanitizeChatText(text, MAX_CHAT_MESSAGE_LENGTH);
+  if (!safeText) {
+    return;
+  }
+  const message = {
+    type: "chat_message",
+    sender: senderName,
+    text: safeText,
+    isAdmin: !!sender.isAdmin
+  };
+  players.forEach(p => {
+    if (p.ws) {
+      sendJson(p.ws, message);
+    }
+  });
+}
+
 const worldEventQueues = createWorldEventQueues({
   mapWidth: MAP_WIDTH,
   mapHeight: MAP_HEIGHT
@@ -393,6 +538,8 @@ const broadcastClassAndAbilityDefs = classAbilityDefsBroadcaster.broadcastClassA
 const equipmentTools = createEquipmentTools({
   equipmentConfigProvider: () => EQUIPMENT_CONFIG,
   getServerConfig: () => SERVER_CONFIG,
+  getTalentStats: (player) => coreServices.talentSystem?.calculateTalentStats(player.classType, player.talents) || {},
+  getTalentBuffStats: () => ({}),  // Will be updated after talentEffectTools created
   allocateItemInstanceId,
   randomInt,
   clamp,
@@ -402,12 +549,15 @@ const equipmentTools = createEquipmentTools({
   getAbilityDotDamageRange
 });
 const createEmptyEquipmentSlots = equipmentTools.createEmptyEquipmentSlots;
+const rollEquipmentItemAt = equipmentTools.rollEquipmentItemAt;
 const rollEquipmentDropsAt = equipmentTools.rollEquipmentDropsAt;
 const getPlayerModifiedAbilityDamageRange = equipmentTools.getPlayerModifiedAbilityDamageRange;
 const getPlayerModifiedAbilityDotDamageRange = equipmentTools.getPlayerModifiedAbilityDotDamageRange;
 const getPlayerModifiedAbilityChainStats = equipmentTools.getPlayerModifiedAbilityChainStats;
+const getPlayerModifiedAbilityRangeForLevel = equipmentTools.getPlayerModifiedAbilityRangeForLevel;
 const getPlayerModifiedAbilityCooldownMs = equipmentTools.getPlayerModifiedAbilityCooldownMs;
 const getPlayerModifiedAbilityCastMs = equipmentTools.getPlayerModifiedAbilityCastMs;
+const createEquipmentEntryFromBaseItem = equipmentTools.createEquipmentEntryFromBaseItem;
 const equipInventoryItem = equipmentTools.equipInventoryItem;
 const unequipEquipmentItem = equipmentTools.unequipEquipmentItem;
 const vendorTools = createVendorTools({
@@ -425,6 +575,42 @@ const getVendorNpc = vendorTools.getVendorNpc;
 const isPlayerNearVendor = vendorTools.isPlayerNearVendor;
 const getInventoryEntrySellValue = vendorTools.getInventoryEntrySellValue;
 const sellInventoryItemToVendor = vendorTools.sellInventoryItemToVendor;
+
+// Quest system
+const questTools = createQuestTools({
+  townLayout: TOWN_LAYOUT,
+  mapWidth: MAP_WIDTH,
+  mapHeight: MAP_HEIGHT,
+  mobConfigProvider: () => MOB_CONFIG,
+  itemDefsProvider: () => ITEM_CONFIG.itemDefs,
+  regionDataPath: QUEST_REGION_CONFIG_PATH,
+  sendJson,
+  sendSelfProgress,
+  getInventoryItemCount,
+  consumeInventoryItem,
+  addExp: (player, amount) => grantPlayerExp(player, amount),
+  addItemsToInventory,
+  sendInventoryState,
+  syncPlayerCopperFromInventory
+});
+
+const dialogueTools = createDialogueTools({
+  questTools,
+  sendJson
+});
+
+// Export quest functions for use in message handlers
+const getNearbyQuestNpc = questTools.getNearbyQuestNpc;
+const getQuestProgress = questTools.getQuestProgress;
+const acceptQuest = questTools.acceptQuest;
+const completeQuest = questTools.completeQuest;
+const debugCompleteQuest = questTools.debugCompleteQuest;
+const abandonQuest = questTools.abandonQuest;
+const getAvailableQuestsForPlayer = questTools.getAvailableQuestsForPlayer;
+const updateQuestObjective = questTools.updateQuestObjective;
+const checkQuestExploreObjective = questTools.checkQuestExploreObjective;
+const getPlayerQuestState = questTools.getPlayerQuestState;
+
 const playerFactory = createPlayerFactory({
   classConfigProvider: () => CLASS_CONFIG,
   allocatePlayerId,
@@ -432,7 +618,10 @@ const playerFactory = createPlayerFactory({
   createEmptyEquipmentSlots,
   normalizeItemEntries,
   addItemsToInventory,
+  createEquipmentEntryFromBaseItem,
+  recomputePlayerDerivedStats: equipmentTools.recomputePlayerDerivedStats,
   syncPlayerCopperFromInventory,
+  ensurePlayerSkillsState: skillTools.ensurePlayerSkillsState,
   expNeededForLevel,
   sanitizeSpawn: (spawn) => {
     if (!isPointBlockedByTownWall(TOWN_LAYOUT, spawn && spawn.x, spawn && spawn.y)) {
@@ -441,9 +630,31 @@ const playerFactory = createPlayerFactory({
     const vendor = getVendorNpc();
     return vendor ? { x: vendor.x, y: vendor.y } : spawn;
   },
+  defaultVisibilityRange: VISIBILITY_RANGE,
   players
 });
 const createPlayer = playerFactory.createPlayer;
+
+// Wrap sendSelfProgress to include quest state (must be after questTools is created)
+const originalSendSelfProgress = sendSelfProgress;
+const sendSelfProgressWithQuests = (player) => {
+  originalSendSelfProgress(player);
+  // Send quest state update
+  if (player && player.ws) {
+    const questState = questTools.getPlayerQuestState(player);
+    const activeQuests = Object.keys(questState.active).map(questId => {
+      const progress = questTools.getQuestProgress(player, questId);
+      return progress;
+    }).filter(Boolean);
+    
+    sendJson(player.ws, {
+      type: "quest_state_update",
+      active: activeQuests,
+      completed: questState.completed,
+      questNpcMarkers: questTools.getQuestNpcMarkers(player)
+    });
+  }
+};
 
 const projectileSpawnTools = createProjectileSpawnTools({
   normalizeDirection,
@@ -458,7 +669,133 @@ const normalizeProjectileTargetType = projectileSpawnTools.normalizeProjectileTa
 const inferProjectileTargetTypeFromOwner = projectileSpawnTools.inferProjectileTargetTypeFromOwner;
 const spawnProjectileFromTemplate = projectileSpawnTools.spawnProjectileFromTemplate;
 
+function getPlayerTalentAbilityMods(player) {
+  if (!player || !player.classType || !coreServices.talentSystem) {
+    return null;
+  }
+  const stats = coreServices.talentSystem.calculateTalentStats(player.classType, player.talents);
+  const mods = stats && typeof stats === "object" ? stats.abilityMods : null;
+  return mods && typeof mods === "object" ? mods : null;
+}
+
+function getAbilityModNumber(mods, key, abilityId) {
+  if (!mods || typeof mods !== "object") {
+    return 0;
+  }
+  const bucket = mods[key] && typeof mods[key] === "object" ? mods[key] : null;
+  if (!bucket) {
+    return 0;
+  }
+  const id = String(abilityId || "").trim();
+  if (!id) {
+    return 0;
+  }
+  const value = Number(bucket[id]) || 0;
+  return Number.isFinite(value) ? value : 0;
+}
+
+function getAbilityModStatMap(mods, abilityId) {
+  if (!mods || typeof mods !== "object") {
+    return null;
+  }
+  const bucket = mods.statBonus && typeof mods.statBonus === "object" ? mods.statBonus : null;
+  if (!bucket) {
+    return null;
+  }
+  const id = String(abilityId || "").trim();
+  if (!id) {
+    return null;
+  }
+  const statMap = bucket[id];
+  return statMap && typeof statMap === "object" ? statMap : null;
+}
+
+function buildAbilityDefForPlayer(player, abilityDef, abilityLevel) {
+  if (!player || !abilityDef) {
+    return abilityDef;
+  }
+  const mods = getPlayerTalentAbilityMods(player);
+  if (!mods) {
+    return abilityDef;
+  }
+
+  const abilityId = String(abilityDef.id || "").trim();
+  if (!abilityId) {
+    return abilityDef;
+  }
+
+  const stunBonusMs = getAbilityModNumber(mods, "stunDurationBonusMs", abilityId);
+  const statBonus = getAbilityModStatMap(mods, abilityId);
+  const ccImmunityMs = getAbilityModNumber(mods, "crowdControlImmunityMs", abilityId);
+  const damageBonusPercent = getAbilityModNumber(mods, "damageBonusPercent", abilityId);
+
+  const kind = String(abilityDef.kind || "").trim().toLowerCase();
+  const isSelfBuff = kind === "selfbuff";
+
+  const needsStunOverride = stunBonusMs !== 0;
+  const needsBuffOverride =
+    isSelfBuff && ((statBonus && Object.keys(statBonus).length > 0) || ccImmunityMs > 0 || damageBonusPercent !== 0);
+  if (!needsStunOverride && !needsBuffOverride) {
+    return abilityDef;
+  }
+
+  const overrides = {};
+  if (needsStunOverride) {
+    overrides.stunDurationMs = Math.max(0, Math.floor((Number(abilityDef.stunDurationMs) || 0) + stunBonusMs));
+  }
+
+  if (needsBuffOverride) {
+    const baseBuffEffects = Array.isArray(abilityDef.buffEffects) ? abilityDef.buffEffects : [];
+    const nextBuffEffects = baseBuffEffects.map((effect) => {
+      const safe = effect && typeof effect === "object" ? effect : {};
+      const nextStats = safe.stats && typeof safe.stats === "object" ? { ...safe.stats } : {};
+
+      if (statBonus) {
+        for (const [statKey, value] of Object.entries(statBonus)) {
+          const key = String(statKey || "").trim();
+          const delta = Number(value) || 0;
+          if (!key || !Number.isFinite(delta) || delta === 0) {
+            continue;
+          }
+          nextStats[key] = (Number(nextStats[key]) || 0) + delta;
+        }
+      }
+
+      // For self-buff abilities, interpret ability damage bonuses as a temporary global damage bonus for the buff duration.
+      if (damageBonusPercent !== 0) {
+        nextStats["damage.global.percent"] = (Number(nextStats["damage.global.percent"]) || 0) + damageBonusPercent;
+      }
+
+      return {
+        ...safe,
+        stats: nextStats
+      };
+    });
+
+    if (ccImmunityMs > 0) {
+      nextBuffEffects.push({
+        id: `${abilityId}:ccImmunity`,
+        name: "Crowd Control Immunity",
+        label: "IMM",
+        color: "rgba(245, 224, 161, 0.96)",
+        durationMs: Math.max(1, Math.floor(ccImmunityMs)),
+        stats: {
+          crowdControlImmune: true
+        }
+      });
+    }
+
+    overrides.buffEffects = nextBuffEffects;
+  }
+
+  return {
+    ...abilityDef,
+    ...overrides
+  };
+}
+
 const abilityHandlerContext = createAbilityHandlerContext({
+  players,
   mobs,
   projectiles,
   mapWidth: MAP_WIDTH,
@@ -470,6 +807,10 @@ const abilityHandlerContext = createAbilityHandlerContext({
   randomInt,
   rotateDirection,
   getAbilityRangeForLevel,
+  getAbilityRangeForEntity: (entity, abilityDef, abilityLevel) =>
+    entity && entity.entityType === "player"
+      ? getPlayerModifiedAbilityRangeForLevel(entity, abilityDef, abilityLevel, getAbilityRangeForLevel)
+      : getAbilityRangeForLevel(abilityDef, abilityLevel),
   getAbilityDamageRange,
   getAbilityDamageRangeForEntity: (entity, abilityDef, abilityLevel) =>
     entity && entity.entityType === "player"
@@ -484,17 +825,23 @@ const abilityHandlerContext = createAbilityHandlerContext({
     entity && entity.entityType === "player"
       ? getPlayerModifiedAbilityChainStats(entity, abilityDef, abilityLevel)
       : { jumpCountBonus: 0, jumpDamageReductionPercent: 0 },
+  getAbilityDefForEntity: (entity, abilityDef, abilityLevel) =>
+    entity && entity.entityType === "player" ? buildAbilityDefForPlayer(entity, abilityDef, abilityLevel) : abilityDef,
   markAbilityUsed: (...args) => markAbilityUsed(...args),
   applyDamageToMob: (...args) => applyDamageToMob(...args),
   applyAbilityHitEffectsToMob: (...args) => applyAbilityHitEffectsToMob(...args),
+  applyDamageToPlayer: (...args) => applyDamageToPlayer(...args),
   stunMob: (...args) => stunMob(...args),
+  stunPlayer: (...args) => stunPlayer(...args),
   queueExplosionEvent,
   getAreaAbilityTargetPosition: (...args) => getAreaAbilityTargetPosition(...args),
   createPersistentAreaEffect: (...args) => createPersistentAreaEffect(...args),
   createPersistentBeamEffect: (...args) => createPersistentBeamEffect(...args),
   createPersistentSummonEffect: (...args) => createPersistentSummonEffect(...args),
   resolvePlayerMobCollisions: (...args) => resolvePlayerMobCollisions(...args),
-  getAbilityInvulnerabilityDurationMs
+  applySelfBuffs: (...args) => applyAbilityBuffsToPlayer(...args),
+  getAbilityInvulnerabilityDurationMs,
+  isPlayerEnemy: (...args) => isPlayerEnemy(...args)
 });
 
 const lootBagTools = createLootBagTools({
@@ -508,6 +855,52 @@ const lootBagTools = createLootBagTools({
 });
 const createLootBag = lootBagTools.createLootBag;
 const tickLootBags = lootBagTools.tickLootBags;
+
+craftingTools = createCraftingTools({
+  recipeDataPath: RECIPE_CONFIG_PATH,
+  itemDefsProvider: () => ITEM_CONFIG.itemDefs,
+  skillTools,
+  getInventoryItemCount,
+  consumeInventoryItem,
+  addItemsToInventory,
+  sendInventoryState,
+  sendSelfProgress: sendSelfProgressWithQuests,
+  sendJson
+});
+
+const resourceGenerationTools = createResourceGenerationTools({
+  resourceNodes,
+  allocateResourceNodeId,
+  resourceRegistry,
+  biomeResolver,
+  skillTools,
+  getToolTierForPlayer: (player, skillId) => craftingTools.getBestToolTierForPlayer(player, skillId),
+  addItemsToInventory,
+  sendInventoryState,
+  sendSelfProgress: sendSelfProgressWithQuests,
+  sendJson,
+  mapWidth: MAP_WIDTH,
+  mapHeight: MAP_HEIGHT,
+  townLayout: TOWN_LAYOUT
+});
+const initializeResourceNodes = resourceGenerationTools.initializeResourceNodes;
+const getVisibleResourceNodesForPlayer = resourceGenerationTools.getVisibleResourceNodesForPlayer;
+const serializeResourceNode = resourceGenerationTools.serializeResourceNode;
+const interactWithResourceNode = resourceGenerationTools.interactWithResourceNode;
+const tickResources = resourceGenerationTools.tickResourceNodes;
+
+const mobScalingTools = createMobScalingTools({
+  baseLevel: MOB_BASE_LEVEL,
+  levelStartDistance: MOB_LEVEL_START_DISTANCE,
+  levelDistance: MOB_LEVEL_DISTANCE,
+  levelDistanceStep: MOB_LEVEL_DISTANCE_STEP,
+  healthMultiplierPerLevel: MOB_LEVEL_HEALTH_MULTIPLIER,
+  damageMultiplierPerLevel: MOB_LEVEL_DAMAGE_MULTIPLIER,
+  speedMultiplierPerLevel: MOB_LEVEL_SPEED_MULTIPLIER
+});
+const getMobLevelForDistance = mobScalingTools.getMobLevelForDistance;
+const applyScaledStatsToMob = mobScalingTools.applyScaledStatsToMob;
+const scaleDamageRangeForMob = mobScalingTools.scaleDamageRangeForMob;
 
 const mobLifecycleTools = createMobLifecycleTools({
   clamp,
@@ -525,21 +918,39 @@ const mobLifecycleTools = createMobLifecycleTools({
   createLootBag,
   normalizeItemEntries,
   grantPlayerExp,
+  skillTools,
   allocateMobId,
   allocateSpawnerId,
   getServerConfig: () => SERVER_CONFIG,
   getMobConfig: () => MOB_CONFIG,
+  biomeResolver,
   townLayout: TOWN_LAYOUT,
   mapWidth: MAP_WIDTH,
   mapHeight: MAP_HEIGHT,
   targetMobClusters: TARGET_MOB_CLUSTERS,
   clusterAreaSize: CLUSTER_AREA_SIZE,
-  maxClustersPerArea: MAX_CLUSTERS_PER_AREA
+  maxClustersPerArea: MAX_CLUSTERS_PER_AREA,
+  visibilityRange: VISIBILITY_RANGE,
+  observedSpawnPadding: OBSERVED_SPAWN_PADDING,
+  minSpawnRadiusFromCenter: MIN_SPAWN_RADIUS_FROM_CENTER,
+  unobservedDespawnMs: UNOBSERVED_DESPAWN_MS,
+  getMobLevelForDistance,
+  applyScaledStatsToMob,
+  onMobKilled: (player, mob) => {
+    if (updateQuestObjective(player, "kill", mob.type, 1)) {
+      sendSelfProgressWithQuests(player);
+    }
+  }
 });
 const createMob = mobLifecycleTools.createMob;
 const initializeMobSpawners = mobLifecycleTools.initializeMobSpawners;
+const ensureObservedSpawnerCoverage = mobLifecycleTools.ensureObservedSpawnerCoverage;
+const refreshMobObservation = mobLifecycleTools.refreshMobObservation;
+const despawnUnobservedMobs = mobLifecycleTools.despawnUnobservedMobs;
 const killMob = mobLifecycleTools.killMob;
 const respawnMob = mobLifecycleTools.respawnMob;
+const isSpawnerObserved = mobLifecycleTools.isSpawnerObserved;
+const getAliveMobCount = mobLifecycleTools.getAliveMobCount;
 
 const mobBehaviorTools = createMobBehaviorTools({
   players,
@@ -563,7 +974,7 @@ const damageTools = createDamageTools({
   killMob,
   clearPlayerCast: (...args) => clearPlayerCast(...args),
   clearPlayerCombatEffects: (...args) => clearPlayerCombatEffects(...args),
-  getPlayerById: (playerId) => players.get(String(playerId || "")) || null,
+  getPlayerById: (playerId) => mapGet(players, playerId) || null,
   clamp
 });
 const applyDamageToMob = damageTools.applyDamageToMob;
@@ -572,7 +983,8 @@ const mobCombatEffectTools = createMobCombatEffectTools({
   clamp,
   randomInt,
   applyDamageToMob,
-  getAbilityDotDamageRange
+  getAbilityDotDamageRange,
+  getPlayerById: (playerId) => mapGet(players, playerId) || null
 });
 const stunMob = mobCombatEffectTools.stunMob;
 const applySlowToMob = mobCombatEffectTools.applySlowToMob;
@@ -583,7 +995,8 @@ const projectileEffectTools = createProjectileEffectTools({
   clamp,
   applySlowToMob,
   stunMob,
-  applyDotToMob
+  applyDotToMob,
+  getPlayerById: (playerId) => mapGet(players, playerId) || null
 });
 const applyProjectileHitEffects = projectileEffectTools.applyProjectileHitEffects;
 const areaEffectTools = createAreaEffectTools({
@@ -615,17 +1028,66 @@ const playerAbilityTools = createPlayerAbilityTools({
 const getPlayerClassDef = playerAbilityTools.getPlayerClassDef;
 const getPlayerAbilityLevel = playerAbilityTools.getPlayerAbilityLevel;
 const levelUpPlayerAbility = playerAbilityTools.levelUpPlayerAbility;
+const playerBuffTools = createPlayerBuffTools({
+  clamp,
+  recomputePlayerDerivedStats: equipmentTools.recomputePlayerDerivedStats
+});
+const applyAbilityBuffsToPlayer = playerBuffTools.applyAbilityBuffsToPlayer;
+const tickPlayerBuffs = playerBuffTools.tickPlayerBuffs;
+const clearPlayerBuffs = playerBuffTools.clearPlayerBuffs;
 
 const playerCombatEffectTools = createPlayerCombatEffectTools({
   clamp,
   randomInt,
   applyDamageToPlayer,
-  getAbilityDotDamageRange
+  getAbilityDotDamageRange,
+  getPlayerById: (playerId) => mapGet(players, playerId) || null
 });
 const clearPlayerCombatEffects = playerCombatEffectTools.clearPlayerCombatEffects;
 const tickPlayerDotEffects = playerCombatEffectTools.tickPlayerDotEffects;
 const applyAbilityHitEffectsToPlayer = playerCombatEffectTools.applyAbilityHitEffectsToPlayer;
 const applyProjectileHitEffectsToPlayer = playerCombatEffectTools.applyProjectileHitEffectsToPlayer;
+const stunPlayer = playerCombatEffectTools.stunPlayer;
+const applySlowToPlayer = playerCombatEffectTools.applySlowToPlayer;
+
+// Create talent effect tools after combat tools are available
+const { createTalentEffectTools } = require("./server/gameplay/talent-effects");
+const talentEffectTools = createTalentEffectTools({
+  randomInt,
+  clamp,
+  talentSystem: coreServices.talentSystem,
+  stunMob,
+  stunPlayer,
+  applySlowToMob,
+  applySlowToPlayer,
+  recomputePlayerDerivedStats: equipmentTools.recomputePlayerDerivedStats
+});
+const onTalentSpellHit = talentEffectTools.onTalentSpellHit;
+const onTalentKill = talentEffectTools.onTalentKill;
+const onTalentDamageDealt = talentEffectTools.onTalentDamageDealt;
+const tickTalentBuffs = talentEffectTools.tickTalentBuffs;
+const getTalentBuffStats = talentEffectTools.getTalentBuffStats;
+
+// Update equipment tools with actual getTalentBuffStats
+equipmentTools.getTalentBuffStats = getTalentBuffStats;
+
+// Wire up talent effects in damage and combat tools
+damageTools.onTalentSpellHit = onTalentSpellHit;
+damageTools.onTalentKill = onTalentKill;
+damageTools.onTalentDamageDealt = onTalentDamageDealt;
+mobCombatEffectTools.onTalentSpellHit = onTalentSpellHit;
+playerCombatEffectTools.onTalentSpellHit = onTalentSpellHit;
+projectileEffectTools.onTalentSpellHit = onTalentSpellHit;
+const notifyAbilityUsed = (player, abilityDef, now = Date.now()) => {
+  if (!player || !player.ws || typeof sendJson !== "function" || !abilityDef) {
+    return;
+  }
+  sendJson(player.ws, {
+    type: "ability_used",
+    abilityId: String(abilityDef.id || ""),
+    usedAt: Math.max(0, Math.floor(Number(now) || Date.now()))
+  });
+};
 const castingTools = createCastingTools({
   getAbilityCooldownMsForLevel
 });
@@ -657,11 +1119,41 @@ const playerCommandTools = createPlayerCommandTools({
   addItemsToInventory,
   sendInventoryState,
   syncPlayerCopperFromInventory,
-  sendJson
+  sendJson,
+  notifyAbilityUsed,
+  onItemsPickedUp: (player, itemId, qty) => {
+    if (updateQuestObjective(player, "collect", itemId, qty)) {
+      sendSelfProgressWithQuests(player);
+    }
+  }
 });
 const tryPickupLootBag = playerCommandTools.tryPickupLootBag;
 const usePlayerAbility = playerCommandTools.usePlayerAbility;
 const updatePlayerCastTarget = playerCommandTools.updatePlayerCastTarget;
+
+const { createTalentCommandTools } = require("./server/gameplay/talent-commands");
+let getTalentTreeData = null;
+let spendTalentPoint = null;
+
+const sendTalentUpdateWrapper = (player) => {
+  if (getTalentTreeData) {
+    sendJson(player.ws, {
+      type: "talent_update",
+      talentTree: getTalentTreeData(player)
+    });
+  }
+};
+
+const talentCommandTools = createTalentCommandTools({
+  talentSystem: coreServices.talentSystem,
+  sendJson,
+  sendSelfProgressWithQuests,
+  sendTalentUpdate: sendTalentUpdateWrapper,
+  recomputePlayerDerivedStats: equipmentTools.recomputePlayerDerivedStats
+});
+
+spendTalentPoint = talentCommandTools.spendTalentPoint;
+getTalentTreeData = talentCommandTools.getTalentTreeData;
 const botTickSystem = createBotTickSystem({
   players,
   mobs,
@@ -696,6 +1188,22 @@ const inspectBot = botTickSystem.inspectBot;
 const destroyBot = botTickSystem.destroyBot;
 const setBotFollow = botTickSystem.setBotFollow;
 const clearBotFollow = botTickSystem.clearBotFollow;
+const benchmarkSceneTools = createBenchmarkSceneTools({
+  players,
+  mobs,
+  mobSpawners,
+  lootBags,
+  activeAreaEffects,
+  projectiles,
+  createBotPlayer,
+  destroyBot,
+  getMobConfig: () => MOB_CONFIG,
+  createMob,
+  clearMobCast,
+  centerX: MAP_WIDTH * 0.5,
+  centerY: MAP_HEIGHT * 0.5
+});
+const createBenchmarkScene = benchmarkSceneTools.createBenchmarkScene;
 const configOrchestrator = createConfigOrchestrator({
   paths: {
     serverConfigPath: SERVER_CONFIG_PATH,
@@ -718,9 +1226,11 @@ const configOrchestrator = createConfigOrchestrator({
     getAbilityConfig: () => ABILITY_CONFIG,
     setAbilityConfig: (nextConfig) => {
       ABILITY_CONFIG = nextConfig;
+      invalidateStaticClientConfigSnapshots();
     },
     setClassConfig: (nextConfig) => {
       CLASS_CONFIG = nextConfig;
+      invalidateStaticClientConfigSnapshots();
     },
     setMobConfig: (nextConfig) => {
       MOB_CONFIG = nextConfig;
@@ -745,7 +1255,9 @@ const configOrchestrator = createConfigOrchestrator({
     mobs,
     pickClusterDef,
     clearMobCast,
-    broadcastClassAndAbilityDefs
+    broadcastClassAndAbilityDefs,
+    applyScaledStatsToMob,
+    getMobLevelForDistance
   },
   createDebouncedFileReloader
 });
@@ -755,6 +1267,8 @@ const projectileRuntimeTools = createProjectileRuntimeTools({
   clamp,
   players,
   mobs,
+  getPlayersInRadius: worldState.getPlayersInRadius,
+  getMobsInRadius: worldState.getMobsInRadius,
   spawnProjectileFromTemplate,
   normalizeProjectileTargetType
 });
@@ -780,10 +1294,16 @@ const projectileTickSystem = createProjectileTickSystem({
   applyProjectileHitEffects,
   emitProjectilesFromEmitter,
   getNearestProjectileTarget,
+  getPlayersInRadius: worldState.getPlayersInRadius,
+  getMobsInRadius: worldState.getMobsInRadius,
   normalizeDirection,
-  steerDirectionTowards
+  steerDirectionTowards,
+  isProjectileBlockedAt: (x, y) => isPointBlockedByTownWall(TOWN_LAYOUT, x, y)
 });
-const tickProjectiles = projectileTickSystem.tickProjectiles;
+const tickProjectiles = () => {
+  worldState.rebuildSpatialIndexes();
+  projectileTickSystem.tickProjectiles();
+};
 
 const playerTickSystem = createPlayerTickSystem({
   players,
@@ -795,14 +1315,18 @@ const playerTickSystem = createPlayerTickSystem({
   basePlayerSpeed: BASE_PLAYER_SPEED,
   tickPlayerHealEffects,
   tickPlayerManaEffects,
+  tickPlayerBuffs,
   tickPlayerDotEffects,
+  tickTalentBuffs,
   clearPlayerCast,
   playerHasMovementInput,
+  clearPlayerBuffs,
   clearPlayerCombatEffects,
   abilityDefsProvider: () => ABILITY_CONFIG.abilityDefs,
   getPlayerAbilityLevel,
   getAbilityCooldownPassed,
   executeAbilityByKind,
+  notifyAbilityUsed,
   abilityHandlerContext,
   normalizeDirection,
   isBlockedPoint: (x, y) => isPointBlockedByTownWall(TOWN_LAYOUT, x, y),
@@ -827,7 +1351,8 @@ const {
 const buildAreaEffectEventsForRecipient = createAreaEffectEventBuilder({
   activeAreaEffects,
   inVisibilityRange,
-  visibilityRange: VISIBILITY_RANGE
+  visibilityRange: VISIBILITY_RANGE,
+  getPlayerVisibilityExtents
 });
 
 const mobCombatTools = createMobCombatTools({
@@ -864,6 +1389,7 @@ const mobAbilityTools = createMobAbilityTools({
   queueExplosionEvent,
   clearMobCast: (...args) => clearMobCast(...args),
   getMobCombatProfile: (...args) => getMobCombatProfile(...args),
+  scaleDamageRangeForMob,
   allocateProjectileId,
   mapWidth: MAP_WIDTH,
   mapHeight: MAP_HEIGHT,
@@ -890,7 +1416,11 @@ const mobTickSystem = createMobTickSystem({
   normalizeDirection,
   clampToSpawnRadius,
   townLayout: TOWN_LAYOUT,
+  ensureObservedSpawnerCoverage,
+  refreshMobObservation,
+  despawnUnobservedMobs,
   respawnMob,
+  isSpawnerObserved,
   tickMobDotEffects,
   clearMobCast,
   completeMobAbilityCast,
@@ -920,17 +1450,20 @@ const runtimeBootstrap = createRuntimeBootstrap({
     allocatePlayerId,
     createPlayer,
     createBotPlayer,
+    createBenchmarkScene,
     listBots,
     inspectBot,
     destroyBot,
     setBotFollow,
     clearBotFollow,
     sendJson,
+    getServerConfig: () => SERVER_CONFIG,
     players,
     mapWidth: MAP_WIDTH,
     mapHeight: MAP_HEIGHT,
     visibilityRange: VISIBILITY_RANGE,
     buildSoundManifest,
+    getStaticClientConfigSnapshot,
     randomSpawn,
     expNeededForLevel,
     createEmptyInventorySlots,
@@ -940,13 +1473,16 @@ const runtimeBootstrap = createRuntimeBootstrap({
     syncPlayerCopperFromInventory,
     sendInventoryState,
     sendEquipmentState,
-    sendSelfProgress,
+    sendSelfProgress: sendSelfProgressWithQuests,
+    updatePlayerViewport,
     clamp,
     normalizeDirection,
     clearPlayerCast,
     usePlayerAbility,
     updatePlayerCastTarget,
     levelUpPlayerAbility,
+    spendTalentPoint,
+    getTalentTreeData,
     tryPickupLootBag,
     getVendorNpc,
     isPlayerNearVendor,
@@ -955,9 +1491,26 @@ const runtimeBootstrap = createRuntimeBootstrap({
     mergeOrSwapInventorySlots,
     equipInventoryItem,
     unequipEquipmentItem,
+    rollEquipmentItemAt,
     consumeInventoryItem,
     addHealOverTimeEffect,
-    addManaOverTimeEffect
+  addManaOverTimeEffect,
+  craftRecipe: (player, recipeId, times) => craftingTools.craftRecipe(player, recipeId, times),
+  interactWithResourceNode,
+    getVisibleResourceNodesForPlayer,
+    serializeResourceNode,
+    broadcastChatMessage,
+    // Quest system
+    questTools,
+    dialogueTools,
+    getQuestNpc: questTools.getQuestNpc,
+    isPlayerNearNpc: questTools.isPlayerNearNpc,
+    acceptQuest,
+    completeQuest,
+    debugCompleteQuest,
+    abandonQuest,
+    updateQuestObjective,
+    getPlayerQuestState
   }),
   entityUpdateDeps: {
     getPendingHealAmount,
@@ -969,10 +1522,18 @@ const runtimeBootstrap = createRuntimeBootstrap({
     projectiles,
     mobs,
     lootBags,
+    rebuildSpatialIndexes: worldState.rebuildSpatialIndexes,
+    getPlayersInRadius: worldState.getPlayersInRadius,
+    getProjectilesInRadius: worldState.getProjectilesInRadius,
+    getMobsInRadius: worldState.getMobsInRadius,
+    getLootBagsInRadius: worldState.getLootBagsInRadius,
     VISIBILITY_RANGE,
+    getPlayerVisibilityExtents,
     inVisibilityRange,
     serializePlayer,
     serializeMob,
+    getVisibleResourceNodesForPlayer,
+    serializeResourceNode,
     buildPlayerSwingEventsForRecipient,
     buildPlayerCastEventsForRecipient,
     buildPlayerEffectEventsForRecipient,
@@ -999,6 +1560,7 @@ const runtimeBootstrap = createRuntimeBootstrap({
     pendingExplosionEvents,
     pendingProjectileHitEvents,
     pendingMobDeathEvents,
+    getAliveMobCount,
     sendJson,
     sendBinary
   },
@@ -1010,14 +1572,21 @@ const runtimeBootstrap = createRuntimeBootstrap({
     tickAreaEffects,
     tickMobs,
     tickProjectiles,
+    tickResources,
     tickLootBags
   },
-  initializeMobSpawners,
+  initializeMobSpawners: () => {
+    const resourceInit = initializeResourceNodes();
+    initializeMobSpawners();
+    console.log(
+      `[resources] Spawned ${Math.max(0, Number(resourceInit && resourceInit.total) || 0)} resource nodes`
+    );
+  },
   server,
   port: PORT,
   onServerListening: () => {
     console.log(`Server running at http://localhost:${PORT} (${IS_PROD_MODE ? "prod" : "dev"} mode)`);
-    console.log(`Initialized ${mobSpawners.size} mob spawners and ${mobs.size} mobs.`);
+    console.log("[mobs] Dynamic observed-area spawning enabled.");
   }
 });
 runtimeBootstrap.start();

@@ -3,6 +3,8 @@ const { createNormalizeItemEntries, createDropRollTools } = require("../gameplay
 const { createInventoryTools } = require("../gameplay/inventory");
 const { createPlayerResourceTools } = require("../gameplay/player-resources");
 const { createProgressionTools } = require("../gameplay/progression");
+const { createSkillTools } = require("../gameplay/skills");
+const { loadTalentConfigFromDisk, createTalentSystem } = require("../config/talent-config");
 
 function createCoreServices({
   sendJson,
@@ -21,7 +23,10 @@ function createCoreServices({
   getServerConfig,
   getGlobalDropConfig,
   mapWidth,
-  mapHeight
+  mapHeight,
+  talentConfigPath,
+  classConfig,
+  skillDataPath
 }) {
   const normalizeItemEntries = createNormalizeItemEntries({
     itemDefs
@@ -35,7 +40,12 @@ function createCoreServices({
     inventoryRows,
     inventorySlotCount
   });
-  const sendSelfProgress = playerMessageTools.sendSelfProgress;
+  const skillTools = createSkillTools({
+    skillDataPath,
+    sendSelfProgress: (player) => playerMessageTools.sendSelfProgress(player, skillTools.serializePlayerSkills(player))
+  });
+  const sendSelfProgress = (player) =>
+    playerMessageTools.sendSelfProgress(player, skillTools.serializePlayerSkills(player));
   const sendInventoryState = playerMessageTools.sendInventoryState;
   const sendEquipmentState = playerMessageTools.sendEquipmentState;
   const serializeBagItemsForMeta = (items) =>
@@ -52,12 +62,21 @@ function createCoreServices({
   const addItemsToInventory = inventoryTools.addItemsToInventory;
   const mergeOrSwapInventorySlots = inventoryTools.mergeOrSwapInventorySlots;
   const consumeInventoryItem = inventoryTools.consumeInventoryItem;
+  const getInventoryItemCount = inventoryTools.getInventoryItemCount;
   const syncPlayerCopperFromInventory = inventoryTools.syncPlayerCopperFromInventory;
+
+  const talentConfig = talentConfigPath ? loadTalentConfigFromDisk(talentConfigPath) : {};
+  const talentSystem = createTalentSystem({
+    talentConfig,
+    classConfig
+  });
+  const getTalentPointsPerLevel = talentSystem.getTalentPointsPerLevel;
 
   const progressionTools = createProgressionTools({
     baseExpToNext,
     expGrowthFactor,
     getExpMultiplier,
+    getTalentPointsPerLevel,
     sendSelfProgress
   });
   const expNeededForLevel = progressionTools.expNeededForLevel;
@@ -98,7 +117,9 @@ function createCoreServices({
     addItemsToInventory,
     mergeOrSwapInventorySlots,
     consumeInventoryItem,
+    getInventoryItemCount,
     syncPlayerCopperFromInventory,
+    skillTools,
     expNeededForLevel,
     grantPlayerExp,
     getPendingHealAmount,
@@ -110,7 +131,9 @@ function createCoreServices({
     rollDropRules,
     getDistanceFromCenter,
     rollGlobalDropsForPlayer,
-    rollMobDrops
+    rollMobDrops,
+    talentSystem,
+    getTalentPointsPerLevel
   };
 }
 

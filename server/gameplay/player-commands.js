@@ -14,7 +14,9 @@ function createPlayerCommandTools({
   addItemsToInventory,
   sendInventoryState,
   syncPlayerCopperFromInventory,
-  sendJson
+  sendJson,
+  notifyAbilityUsed,
+  onItemsPickedUp
 }) {
   function tryPickupLootBag(player, targetX, targetY) {
     let pickedBag = null;
@@ -66,6 +68,13 @@ function createPlayerCommandTools({
       itemsGained: transfer.added,
       inventoryFull: transfer.leftover.length > 0
     });
+    
+    // Quest objective: collect items
+    if (typeof onItemsPickedUp === "function" && transfer.added.length > 0) {
+      for (const item of transfer.added) {
+        onItemsPickedUp(player, item.itemId, item.qty);
+      }
+    }
     return true;
   }
 
@@ -146,6 +155,9 @@ function createPlayerCommandTools({
     });
     if (used && manaCost > 0) {
       player.mana = clamp(player.mana - manaCost, 0, player.maxMana);
+    }
+    if (used && typeof notifyAbilityUsed === "function") {
+      notifyAbilityUsed(player, abilityDef, now);
     }
     return used;
   }

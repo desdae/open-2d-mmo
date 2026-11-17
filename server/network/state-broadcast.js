@@ -1,11 +1,62 @@
+function getPlayerVisibilityExtents(player, deps) {
+  if (typeof deps.getPlayerVisibilityExtents === "function") {
+    const extents = deps.getPlayerVisibilityExtents(player);
+    if (extents && Number(extents.x) > 0 && Number(extents.y) > 0) {
+      return {
+        x: Math.max(1, Number(extents.x) || 0),
+        y: Math.max(1, Number(extents.y) || 0)
+      };
+    }
+  }
+  const fallback = Math.max(1, Number(deps.VISIBILITY_RANGE) || 20);
+  return { x: fallback, y: fallback };
+}
+
+function isVisibleToPlayer(player, entity, deps, padX = 0, padY = padX) {
+  const { inVisibilityRange } = deps;
+  if (typeof inVisibilityRange !== "function") {
+    return false;
+  }
+  const extents = getPlayerVisibilityExtents(player, deps);
+  return inVisibilityRange(player, entity, {
+    x: extents.x + Math.max(0, Number(padX) || 0),
+    y: extents.y + Math.max(0, Number(padY) || 0)
+  });
+}
+
+function getSpatialQueryRadius(player, deps, padX = 0, padY = padX) {
+  const extents = getPlayerVisibilityExtents(player, deps);
+  const queryX = extents.x + Math.max(0, Number(padX) || 0);
+  const queryY = extents.y + Math.max(0, Number(padY) || 0);
+  return Math.max(1, Math.hypot(queryX, queryY));
+}
+
+function getNearbyEntityCandidates(player, deps, fallbackMap, queryFnName, padX = 0, padY = padX) {
+  const queryFn = deps && typeof deps[queryFnName] === "function" ? deps[queryFnName] : null;
+  if (queryFn && player) {
+    const candidates = queryFn(
+      Number(player.x) || 0,
+      Number(player.y) || 0,
+      getSpatialQueryRadius(player, deps, padX, padY)
+    );
+    if (candidates && typeof candidates[Symbol.iterator] === "function") {
+      return candidates;
+    }
+    return [];
+  }
+  if (fallbackMap && typeof fallbackMap.values === "function") {
+    return fallbackMap.values();
+  }
+  return [];
+}
+
 function collectNearbyEntitiesForPlayer(player, deps) {
   const {
     players,
     projectiles,
     mobs,
     lootBags,
-    inVisibilityRange,
-    VISIBILITY_RANGE,
+    getVisibleResourceNodesForPlayer,
     serializePlayer,
     serializeMob
   } = deps;
@@ -16,19 +67,23 @@ function collectNearbyEntitiesForPlayer(player, deps) {
   const nearbyMobObjects = [];
   const nearbyProjectiles = [];
   const nearbyLootBags = [];
+  const nearbyResourceNodes =
+    typeof getVisibleResourceNodesForPlayer === "function"
+      ? getVisibleResourceNodesForPlayer(player, deps.inVisibilityRange, getPlayerVisibilityExtents(player, deps))
+      : [];
 
-  for (const other of players.values()) {
+  for (const other of getNearbyEntityCandidates(player, deps, players, "getPlayersInRadius")) {
     if (other.id === player.id) {
       continue;
     }
-    if (inVisibilityRange(player, other, VISIBILITY_RANGE)) {
+    if (isVisibleToPlayer(player, other, deps)) {
       nearbyPlayers.push(serializePlayer(other));
       nearbyPlayerObjects.push(other);
     }
   }
 
-  for (const projectile of projectiles.values()) {
-    if (inVisibilityRange(player, projectile, VISIBILITY_RANGE)) {
+  for (const projectile of getNearbyEntityCandidates(player, deps, projectiles, "getProjectilesInRadius")) {
+    if (isVisibleToPlayer(player, projectile, deps)) {
       nearbyProjectiles.push({
         id: projectile.id,
         ownerId: projectile.ownerId,
@@ -39,18 +94,18 @@ function collectNearbyEntitiesForPlayer(player, deps) {
     }
   }
 
-  for (const mob of mobs.values()) {
+  for (const mob of getNearbyEntityCandidates(player, deps, mobs, "getMobsInRadius")) {
     if (!mob.alive) {
       continue;
     }
-    if (inVisibilityRange(player, mob, VISIBILITY_RANGE)) {
+    if (isVisibleToPlayer(player, mob, deps)) {
       nearbyMobs.push(serializeMob(mob));
       nearbyMobObjects.push(mob);
     }
   }
 
-  for (const bag of lootBags.values()) {
-    if (inVisibilityRange(player, bag, VISIBILITY_RANGE)) {
+  for (const bag of getNearbyEntityCandidates(player, deps, lootBags, "getLootBagsInRadius")) {
+    if (isVisibleToPlayer(player, bag, deps)) {
       nearbyLootBags.push(bag);
     }
   }
@@ -61,8 +116,28 @@ function collectNearbyEntitiesForPlayer(player, deps) {
     nearbyMobs,
     nearbyMobObjects,
     nearbyProjectiles,
-    nearbyLootBags
+    nearbyLootBags,
+    nearbyResourceNodes
   };
+}
+
+function sendVisibleResourceNodes(player, nearbyResourceNodes, deps) {
+  const { sendJson, serializeResourceNode } = deps;
+  if (typeof sendJson !== "function" || typeof serializeResourceNode !== "function" || !player || !player.entitySync) {
+    return;
+  }
+  const visibleNodes = Array.isArray(nearbyResourceNodes) ? nearbyResourceNodes.map((node) => serializeResourceNode(node)).filter(Boolean) : [];
+  const signature = visibleNodes
+    .map((node) => `${node.id}:${node.resourceId}:${Math.round(Number(node.x) || 0)}:${Math.round(Number(node.y) || 0)}`)
+    .join("|");
+  if ((player.entitySync.resourceNodeStateSignature || "") === signature) {
+    return;
+  }
+  player.entitySync.resourceNodeStateSignature = signature;
+  sendJson(player.ws, {
+    type: "resource_nodes_state",
+    nodes: visibleNodes
+  });
 }
 
 function sendEntityMeta(player, entityUpdate, deps) {
@@ -132,6 +207,37 @@ function sendCastAndCombatAnimationEvents(player, nearbyPlayerObjects, nearbyMob
   }
 }
 
+function sendSelfBuffUpdates(player, now, deps) {
+  const { sendJson } = deps;
+  if (typeof sendJson !== "function" || !player || !player.entitySync) {
+    return;
+  }
+  const visibleBuffs = (Array.isArray(player.activeBuffs) ? player.activeBuffs : [])
+    .filter((buff) => Math.max(0, Number(buff && buff.endsAt) || 0) > now)
+    .map((buff) => ({
+      id: String(buff.id || ""),
+      name: String(buff.name || ""),
+      label: String(buff.label || "").slice(0, 3).toUpperCase(),
+      color: String(buff.color || "").trim(),
+      stats: buff.stats && typeof buff.stats === "object" ? { ...buff.stats } : {},
+      endsAt: Math.max(0, Math.floor(Number(buff.endsAt) || 0)),
+      durationMs: Math.max(1, Math.min(65535, Math.floor(Number(buff.durationMs) || 0))),
+      remainingMs: Math.max(1, Math.min(65535, Math.floor((Number(buff.endsAt) || 0) - now)))
+    }))
+    .sort((a, b) => a.remainingMs - b.remainingMs || a.id.localeCompare(b.id));
+  const signature = visibleBuffs
+    .map((buff) => `${buff.id}:${buff.endsAt}:${buff.durationMs}:${buff.label}:${buff.color}:${buff.name}`)
+    .join("|");
+  if ((player.entitySync.selfBuffStateSignature || "") === signature) {
+    return;
+  }
+  player.entitySync.selfBuffStateSignature = signature;
+  sendJson(player.ws, {
+    type: "self_buffs",
+    buffs: visibleBuffs.map(({ endsAt, ...buff }) => buff)
+  });
+}
+
 function sendAreaEffectEvents(player, now, deps) {
   const { buildAreaEffectEventsForRecipient, sendBinary, encodeAreaEffectEventPacket } = deps;
   const areaEffectEvents = buildAreaEffectEventsForRecipient(player, now);
@@ -141,13 +247,13 @@ function sendAreaEffectEvents(player, now, deps) {
 }
 
 function sendVisibleDamageEvents(player, deps) {
-  const { pendingDamageEvents, sendBinary, encodeDamageEventPacket, inVisibilityRange, VISIBILITY_RANGE } = deps;
+  const { pendingDamageEvents, sendBinary, sendJson, encodeDamageEventPacket } = deps;
   if (!pendingDamageEvents.length) {
     return;
   }
   const visibleDamageEvents = [];
   for (const event of pendingDamageEvents) {
-    if (inVisibilityRange(player, event, VISIBILITY_RANGE)) {
+    if (isVisibleToPlayer(player, event, deps)) {
       visibleDamageEvents.push({
         x: event.x,
         y: event.y,
@@ -158,19 +264,26 @@ function sendVisibleDamageEvents(player, deps) {
     }
   }
   if (visibleDamageEvents.length) {
-    sendBinary(player.ws, encodeDamageEventPacket(visibleDamageEvents));
+    if (typeof sendJson === "function") {
+      sendJson(player.ws, {
+        type: "damage_events",
+        events: visibleDamageEvents.map((event) => ({ ...event }))
+      });
+    } else {
+      sendBinary(player.ws, encodeDamageEventPacket(visibleDamageEvents));
+    }
   }
 }
 
 function sendVisibleExplosionEvents(player, deps) {
-  const { pendingExplosionEvents, sendBinary, encodeExplosionEventPacket, inVisibilityRange, VISIBILITY_RANGE } = deps;
+  const { pendingExplosionEvents, sendBinary, encodeExplosionEventPacket } = deps;
   if (!pendingExplosionEvents.length) {
     return;
   }
   const visibleExplosionEvents = [];
   for (const event of pendingExplosionEvents) {
-    const range = VISIBILITY_RANGE + Math.max(0, Number(event.radius) || 0);
-    if (inVisibilityRange(player, event, range)) {
+    const radius = Math.max(0, Number(event.radius) || 0);
+    if (isVisibleToPlayer(player, event, deps, radius, radius)) {
       visibleExplosionEvents.push(event);
     }
   }
@@ -183,16 +296,14 @@ function sendVisibleProjectileHitEvents(player, deps) {
   const {
     pendingProjectileHitEvents,
     sendBinary,
-    encodeProjectileHitEventPacket,
-    inVisibilityRange,
-    VISIBILITY_RANGE
+    encodeProjectileHitEventPacket
   } = deps;
   if (!pendingProjectileHitEvents.length) {
     return;
   }
   const visibleProjectileHitEvents = [];
   for (const event of pendingProjectileHitEvents) {
-    if (inVisibilityRange(player, event, VISIBILITY_RANGE + 2)) {
+    if (isVisibleToPlayer(player, event, deps, 2, 2)) {
       visibleProjectileHitEvents.push(event);
     }
   }
@@ -202,19 +313,35 @@ function sendVisibleProjectileHitEvents(player, deps) {
 }
 
 function sendVisibleMobDeathEvents(player, deps) {
-  const { pendingMobDeathEvents, sendBinary, encodeMobDeathEventPacket, inVisibilityRange, VISIBILITY_RANGE } = deps;
+  const { pendingMobDeathEvents, sendBinary, encodeMobDeathEventPacket } = deps;
   if (!pendingMobDeathEvents.length) {
     return;
   }
   const visibleMobDeathEvents = [];
   for (const event of pendingMobDeathEvents) {
-    if (inVisibilityRange(player, event, VISIBILITY_RANGE + 2)) {
+    if (isVisibleToPlayer(player, event, deps, 2, 2)) {
       visibleMobDeathEvents.push(event);
     }
   }
   if (visibleMobDeathEvents.length) {
     sendBinary(player.ws, encodeMobDeathEventPacket(visibleMobDeathEvents));
   }
+}
+
+function sendWorldStats(player, now, deps) {
+  const { sendJson, getAliveMobCount } = deps;
+  if (typeof sendJson !== "function" || typeof getAliveMobCount !== "function") {
+    return;
+  }
+  const lastSentAt = Number(player.lastWorldStatsSentAt) || 0;
+  if (now - lastSentAt < 1000) {
+    return;
+  }
+  player.lastWorldStatsSentAt = now;
+  sendJson(player.ws, {
+    type: "world_stats",
+    mobCount: Math.max(0, Math.floor(Number(getAliveMobCount()) || 0))
+  });
 }
 
 function getCosmeticEventFlushInterval(deps) {
@@ -250,6 +377,10 @@ function broadcastStateToPlayers(deps, now = Date.now(), options = {}) {
   const sendCosmeticBursts = options.sendCosmeticBursts !== false;
   const sendDamageBursts = options.sendDamageBursts !== false;
 
+  if (typeof deps.rebuildSpatialIndexes === "function") {
+    deps.rebuildSpatialIndexes();
+  }
+
   for (const player of players.values()) {
     if (!player || !player.ws) {
       continue;
@@ -264,7 +395,9 @@ function broadcastStateToPlayers(deps, now = Date.now(), options = {}) {
     );
 
     sendEntityMeta(player, entityUpdate, deps);
+    sendVisibleResourceNodes(player, nearby.nearbyResourceNodes, deps);
     sendCastAndCombatAnimationEvents(player, nearby.nearbyPlayerObjects, nearby.nearbyMobObjects, now, deps);
+    sendSelfBuffUpdates(player, now, deps);
     sendAreaEffectEvents(player, now, deps);
     if (sendDamageBursts) {
       sendVisibleDamageEvents(player, deps);
@@ -274,6 +407,7 @@ function broadcastStateToPlayers(deps, now = Date.now(), options = {}) {
       sendVisibleProjectileHitEvents(player, deps);
       sendVisibleMobDeathEvents(player, deps);
     }
+    sendWorldStats(player, now, deps);
 
     if (entityUpdate.packet) {
       sendBinary(player.ws, entityUpdate.packet);
@@ -300,6 +434,8 @@ function createStateBroadcaster(deps) {
 }
 
 module.exports = {
+  sendEntityMeta,
+  sendVisibleDamageEvents,
   broadcastStateToPlayers,
   createStateBroadcaster
 };

@@ -4,7 +4,8 @@
         "id": "copperCoin",
         "stackSize": 10000,
         "description": "A common currency used for trading and purchasing items.",
-        "icon": "Procedurally generated copper coin"
+        "icon": "Procedurally generated copper coin",
+        "tags": ["currency"]
     },
     {
         "name": "Small Health Potion",
@@ -12,6 +13,7 @@
         "stackSize": 99,
         "description": "Restores a small amount of health when consumed.",
         "icon": "Procedurally generated small red potion",
+        "tags": ["potion", "consumable", "healing"],
         "effect": {
             "type": "heal",
             "value": 20,
@@ -24,10 +26,265 @@
         "stackSize": 99,
         "description": "Restores a small amount of mana when consumed.",
         "icon": "Procedurally generated small blue potion",
+        "tags": ["potion", "consumable", "mana"],
         "effect": {
             "type": "mana",
             "value": 30,
             "duration": 5
+        }
+    },
+    {
+        "name": "Bone Fragment",
+        "id": "boneFragment",
+        "stackSize": 99,
+        "description": "A splintered bone shard collected from undead remains. Useful for crafting and ritual work.",
+        "icon": "Procedurally generated pale bone fragment",
+        "tags": ["crafting", "bone", "undead", "quest"]
+    },
+    {
+        "name": "Rotten Flesh",
+        "id": "rottenFlesh",
+        "stackSize": 99,
+        "description": "A foul strip of decayed meat taken from a zombie corpse.",
+        "icon": "Procedurally generated rotten flesh",
+        "tags": ["crafting", "undead", "flesh", "quest"]
+    },
+    {
+        "name": "Spider Silk",
+        "id": "spiderSilk",
+        "stackSize": 99,
+        "description": "Sticky strands of spider silk that can be spun into useful thread.",
+        "icon": "Procedurally generated spider silk bundle",
+        "tags": ["crafting", "beast", "silk", "quest"]
+    },
+    {
+        "name": "Orc Tusk",
+        "id": "orcTusk",
+        "stackSize": 99,
+        "description": "A heavy tusk pried from an orc warrior. Trophy hunters and crafters both value it.",
+        "icon": "Procedurally generated orc tusk",
+        "tags": ["crafting", "orc", "trophy", "quest"]
+    },
+    {
+        "name": "Volatile Powder",
+        "id": "volatilePowder",
+        "stackSize": 99,
+        "description": "A gritty, unstable residue recovered from an explosive creature.",
+        "icon": "Procedurally generated volatile powder pouch",
+        "tags": ["crafting", "volatile", "monster", "quest"]
+    },
+    {
+        "name": "Oak Log",
+        "id": "oakLog",
+        "stackSize": 99,
+        "description": "A sturdy hardwood log cut from a healthy oak.",
+        "icon": "Procedurally generated oak log bundle",
+        "tags": ["crafting", "wood", "log", "oak", "gathered"]
+    },
+    {
+        "name": "Birch Log",
+        "id": "birchLog",
+        "stackSize": 99,
+        "description": "A pale birch log prized for clean woodworking.",
+        "icon": "Procedurally generated birch log bundle",
+        "tags": ["crafting", "wood", "log", "birch", "gathered"]
+    },
+    {
+        "name": "Pine Log",
+        "id": "pineLog",
+        "stackSize": 99,
+        "description": "A resin-rich pine log with a sharp woodland scent.",
+        "icon": "Procedurally generated pine log bundle",
+        "tags": ["crafting", "wood", "log", "pine", "gathered"]
+    },
+    {
+        "name": "Sap",
+        "id": "sap",
+        "stackSize": 99,
+        "description": "Sticky sap scraped from fresh-cut bark.",
+        "icon": "Procedurally generated amber sap glob",
+        "tags": ["crafting", "wood", "resin", "gathered"]
+    },
+    {
+        "name": "Resin",
+        "id": "resin",
+        "stackSize": 99,
+        "description": "A fragrant chunk of hardened pine resin.",
+        "icon": "Procedurally generated pine resin shard",
+        "tags": ["crafting", "wood", "resin", "gathered"]
+    },
+    {
+        "name": "Copper Ore",
+        "id": "copperOre",
+        "stackSize": 99,
+        "description": "A rough copper-bearing stone ready for smelting.",
+        "icon": "Procedurally generated copper ore chunk",
+        "tags": ["crafting", "ore", "metal", "copper", "gathered"]
+    },
+    {
+        "name": "Tin Ore",
+        "id": "tinOre",
+        "stackSize": 99,
+        "description": "A pale metallic ore often alloyed into bronze.",
+        "icon": "Procedurally generated tin ore chunk",
+        "tags": ["crafting", "ore", "metal", "tin", "gathered"]
+    },
+    {
+        "name": "Iron Ore",
+        "id": "ironOre",
+        "stackSize": 99,
+        "description": "A dense, dark ore used for stronger tools and weapons.",
+        "icon": "Procedurally generated iron ore chunk",
+        "tags": ["crafting", "ore", "metal", "iron", "gathered"]
+    },
+    {
+        "name": "Rough Stone",
+        "id": "roughStone",
+        "stackSize": 99,
+        "description": "A jagged chunk of stone broken free while mining.",
+        "icon": "Procedurally generated rough stone shard",
+        "tags": ["crafting", "stone", "ore", "gathered"]
+    },
+    {
+        "name": "Raw Meat",
+        "id": "rawMeat",
+        "stackSize": 99,
+        "description": "Fresh meat taken from a hunted animal.",
+        "icon": "Procedurally generated raw meat cut",
+        "tags": ["crafting", "food", "hunting", "animal", "gathered"]
+    },
+    {
+        "name": "Rabbit Pelt",
+        "id": "rabbitPelt",
+        "stackSize": 99,
+        "description": "A soft pelt from a rabbit, useful for light leatherwork.",
+        "icon": "Procedurally generated rabbit pelt",
+        "tags": ["crafting", "hunting", "animal", "hide", "fur", "gathered"]
+    },
+    {
+        "name": "Light Hide",
+        "id": "lightHide",
+        "stackSize": 99,
+        "description": "A supple hide from a deer or similar game.",
+        "icon": "Procedurally generated light hide roll",
+        "tags": ["crafting", "hunting", "animal", "hide", "leather", "gathered"]
+    },
+    {
+        "name": "Deer Antler",
+        "id": "deerAntler",
+        "stackSize": 99,
+        "description": "A sturdy antler prized for carving and tool grips.",
+        "icon": "Procedurally generated deer antler",
+        "tags": ["crafting", "hunting", "animal", "bone", "trophy", "gathered"]
+    },
+    {
+        "name": "Thick Hide",
+        "id": "thickHide",
+        "stackSize": 99,
+        "description": "A coarse hide taken from a tougher beast.",
+        "icon": "Procedurally generated thick hide bundle",
+        "tags": ["crafting", "hunting", "animal", "hide", "leather", "gathered"]
+    },
+    {
+        "name": "Boar Tusk",
+        "id": "boarTusk",
+        "stackSize": 99,
+        "description": "A sharp boar tusk that can be carved into fittings or charms.",
+        "icon": "Procedurally generated boar tusk",
+        "tags": ["crafting", "hunting", "animal", "bone", "trophy", "gathered"]
+    },
+    {
+        "name": "Oak Plank",
+        "id": "oakPlank",
+        "stackSize": 99,
+        "description": "A cut oak plank ready for rough carpentry.",
+        "icon": "Procedurally generated oak plank bundle",
+        "tags": ["crafting", "wood", "plank", "oak", "processed"],
+        "vendorValue": 3
+    },
+    {
+        "name": "Birch Plank",
+        "id": "birchPlank",
+        "stackSize": 99,
+        "description": "A clean birch plank used for light woodworking.",
+        "icon": "Procedurally generated birch plank bundle",
+        "tags": ["crafting", "wood", "plank", "birch", "processed"],
+        "vendorValue": 3
+    },
+    {
+        "name": "Pine Plank",
+        "id": "pinePlank",
+        "stackSize": 99,
+        "description": "A resin-rich pine plank suited for tool hafts and frames.",
+        "icon": "Procedurally generated pine plank bundle",
+        "tags": ["crafting", "wood", "plank", "pine", "processed"],
+        "vendorValue": 4
+    },
+    {
+        "name": "Crude Hatchet",
+        "id": "crudeHatchet",
+        "stackSize": 1,
+        "description": "A rough hand-made hatchet good enough for starter woodcutting.",
+        "icon": "Procedurally generated crude hatchet",
+        "tags": ["tool", "axe", "woodcutting", "crafted"],
+        "toolTagsAny": ["axe"],
+        "toolTier": 1,
+        "vendorValue": 12
+    },
+    {
+        "name": "Crude Pickaxe",
+        "id": "crudePickaxe",
+        "stackSize": 1,
+        "description": "A rough hand-made pickaxe for beginner mining.",
+        "icon": "Procedurally generated crude pickaxe",
+        "tags": ["tool", "pickaxe", "mining", "crafted"],
+        "toolTagsAny": ["pickaxe"],
+        "toolTier": 1,
+        "vendorValue": 12
+    },
+    {
+        "name": "Bronze Hatchet",
+        "id": "bronzeHatchet",
+        "stackSize": 1,
+        "description": "A sturdier hatchet that can bite into tougher timber.",
+        "icon": "Procedurally generated bronze hatchet",
+        "tags": ["tool", "axe", "woodcutting", "crafted", "bronze"],
+        "toolTagsAny": ["axe"],
+        "toolTier": 2,
+        "vendorValue": 30
+    },
+    {
+        "name": "Bronze Pickaxe",
+        "id": "bronzePickaxe",
+        "stackSize": 1,
+        "description": "A bronze pickaxe able to crack harder ore deposits.",
+        "icon": "Procedurally generated bronze pickaxe",
+        "tags": ["tool", "pickaxe", "mining", "crafted", "bronze"],
+        "toolTagsAny": ["pickaxe"],
+        "toolTier": 2,
+        "vendorValue": 30
+    },
+    {
+        "name": "Hide Wraps",
+        "id": "hideWraps",
+        "stackSize": 99,
+        "description": "Simple hide wrappings used for grips, bindings, and light armor repairs.",
+        "icon": "Procedurally generated hide wrap spool",
+        "tags": ["crafting", "hide", "processed", "crafted"],
+        "vendorValue": 9
+    },
+    {
+        "name": "Trail Rations",
+        "id": "trailRations",
+        "stackSize": 99,
+        "description": "Preserved meat and sap glaze packed for the road.",
+        "icon": "Procedurally generated trail ration pack",
+        "tags": ["food", "consumable", "crafted"],
+        "vendorValue": 8,
+        "effect": {
+            "type": "heal",
+            "value": 12,
+            "duration": 4
         }
     }
 ]

@@ -2,11 +2,12 @@
   "mobs": [
     {
       "name": "Zombie",
+      "tags": ["undead", "starter", "melee", "humanoid", "zombie", "flesh"],
       "health": 20,
       "damage": [1, 2],
       "speed": 0.5,
       "respawnTime": [25, 50],
-      "drops": [{ "copperCoin": [0, 2], "healthPotion01": [0.05] }],
+      "drops": [{ "copperCoin": [0, 2], "healthPotion01": [0.05], "rottenFlesh": [0.26] }],
       "combat": {
         "behavior": "melee",
         "aggroRange": 6,
@@ -31,12 +32,27 @@
         ]
       },
       "renderStyle": {
+        "rigType": "humanoid",
         "spriteType": "zombie",
+        "species": "zombie",
+        "archetype": "mauler",
         "sizeScale": 1,
         "walkCycleSpeed": 2.1,
         "attackVisual": "bite",
         "attackAnimSpeed": 1,
         "biteRadius": 15,
+        "defaults": {
+          "head": "none",
+          "chest": "ragged",
+          "shoulders": "ragged",
+          "gloves": "ragged",
+          "bracers": "ragged",
+          "belt": "ragged",
+          "pants": "ragged",
+          "boots": "leather",
+          "mainHand": "claws",
+          "offHand": "none"
+        },
         "palette": {
           "skin": "#7fae67",
           "skinDark": "#557740",
@@ -50,11 +66,12 @@
     },
     {
       "name": "Skeleton",
+      "tags": ["undead", "starter", "melee", "humanoid", "skeleton", "bone"],
       "health": 30,
       "damage": [2, 3],
       "speed": 0.8,
       "respawnTime": [20, 40],
-      "drops": [{ "copperCoin": [0, 3], "healthPotion01": [0.1] }],
+      "drops": [{ "copperCoin": [0, 3], "healthPotion01": [0.1], "boneFragment": [0.24] }],
       "combat": {
         "behavior": "melee",
         "aggroRange": 7,
@@ -79,7 +96,10 @@
         ]
       },
       "renderStyle": {
+        "rigType": "humanoid",
         "spriteType": "skeleton",
+        "species": "skeleton",
+        "archetype": "warrior",
         "sizeScale": 1,
         "walkCycleSpeed": 2.7,
         "attackVisual": "sword",
@@ -87,6 +107,18 @@
         "weaponOffsetX": 0,
         "weaponOffsetY": 0,
         "weaponAngleOffsetDeg": 0,
+        "defaults": {
+          "head": "rusty_helmet",
+          "chest": "ribcage",
+          "shoulders": "none",
+          "gloves": "none",
+          "bracers": "none",
+          "belt": "none",
+          "pants": "none",
+          "boots": "none",
+          "mainHand": "sword",
+          "offHand": "shield"
+        },
         "palette": {
           "bone": "#eef1f4",
           "boneDark": "#c8ced7",
@@ -94,6 +126,8 @@
           "eye": "#101116",
           "metal": "#d7dce5",
           "metalDark": "#8f98a8",
+          "helmetMetal": "#916849",
+          "helmetMetalDark": "#5e4330",
           "shield": "#e6ebf2",
           "shieldCrack": "#a4adbc"
         }
@@ -101,11 +135,12 @@
     },
     {
       "name": "Skeleton Archer",
+      "tags": ["undead", "starter", "ranged", "humanoid", "skeleton", "bone", "archer"],
       "health": 28,
       "damage": [1, 2],
       "speed": 1,
       "respawnTime": [25, 45],
-      "drops": [{ "copperCoin": [0, 4], "healthPotion01": [0.14], "manaPotion01": [0.08] }],
+      "drops": [{ "copperCoin": [0, 4], "healthPotion01": [0.14], "manaPotion01": [0.08], "boneFragment": [0.22] }],
       "combat": {
         "behavior": "ranged",
         "aggroRange": 12,
@@ -142,21 +177,37 @@
         ]
       },
       "renderStyle": {
+        "rigType": "humanoid",
         "spriteType": "skeleton_archer",
+        "species": "skeleton",
+        "archetype": "archer",
         "sizeScale": 1,
         "walkCycleSpeed": 2.6,
         "attackVisual": "bow",
         "attackAnimSpeed": 1,
         "weaponOffsetX": 0,
         "weaponOffsetY": 0,
+        "defaults": {
+          "head": "rusty_helmet",
+          "chest": "ribcage",
+          "shoulders": "none",
+          "gloves": "none",
+          "bracers": "none",
+          "belt": "none",
+          "pants": "none",
+          "boots": "none",
+          "mainHand": "bow",
+          "offHand": "none"
+        },
         "palette": {
           "bone": "#eceff3",
           "boneDark": "#c5ccd7",
           "outline": "#1a1f28",
           "eye": "#0f1015",
-          "hood": "#3b3f46",
-          "hoodDark": "#262a31",
-          "cloak": "#2b2f36",
+          "metal": "#d7dce5",
+          "metalDark": "#8f98a8",
+          "helmetMetal": "#916849",
+          "helmetMetalDark": "#5e4330",
           "bow": "#8d6d48",
           "bowDark": "#5f472f",
           "arrowShaft": "#d4d8df",
@@ -167,11 +218,12 @@
     },
     {
       "name": "Creeper",
+      "tags": ["starter", "melee", "volatile", "construct"],
       "health": 20,
       "damage": [3, 5],
       "speed": 0.9,
       "respawnTime": [30, 60],
-      "drops": [{ "copperCoin": [0, 4], "healthPotion01": [0.2] }],
+      "drops": [{ "copperCoin": [0, 4], "healthPotion01": [0.2], "volatilePowder": [0.21] }],
       "combat": {
         "behavior": "melee",
         "aggroRange": 6.5,
@@ -216,10 +268,12 @@
     },
     {
       "name": "Spider",
+      "tags": ["starter", "melee", "beast", "arachnid", "silk"],
       "health": 16,
       "damage": [2, 3],
       "speed": 1,
       "respawnTime": [20, 40],
+      "drops": [{ "copperCoin": [0, 3], "spiderSilk": [0.24] }],
       "combat": {
         "behavior": "melee",
         "aggroRange": 6.5,
@@ -264,11 +318,12 @@
     },
     {
       "name": "Orc Berserker",
+      "tags": ["mid", "melee", "humanoid", "orc", "brute"],
       "health": 40,
       "damage": [5, 7],
       "speed": 2,
       "respawnTime": [40, 80],
-      "drops": [{ "copperCoin": [0, 5], "healthPotion01": [0.3] }],
+      "drops": [{ "copperCoin": [0, 5], "healthPotion01": [0.3], "orcTusk": [0.23] }],
       "combat": {
         "behavior": "melee",
         "aggroRange": 8,
@@ -301,7 +356,10 @@
         ]
       },
       "renderStyle": {
+        "rigType": "humanoid",
         "spriteType": "orc",
+        "species": "orc",
+        "archetype": "berserker",
         "sizeScale": 1.05,
         "walkCycleSpeed": 2.8,
         "idleCycleSpeed": 1,
@@ -310,6 +368,18 @@
         "weaponOffsetX": 0,
         "weaponOffsetY": 0,
         "weaponAngleOffsetDeg": 0,
+        "defaults": {
+          "head": "none",
+          "chest": "leather",
+          "shoulders": "leather",
+          "gloves": "leather",
+          "bracers": "leather",
+          "belt": "leather",
+          "pants": "leather",
+          "boots": "leather",
+          "mainHand": "axe",
+          "offHand": "axe"
+        },
         "palette": {
           "skin": "#8bbf63",
           "skinDark": "#5f8242",
@@ -325,6 +395,114 @@
           "boot": "#352520"
         }
       }
+    },
+    {
+      "name": "Rabbit",
+      "tags": ["starter", "animal", "passive", "huntable", "rabbit", "fur", "meat"],
+      "health": 10,
+      "damage": [0, 0],
+      "speed": 1.55,
+      "respawnTime": [18, 36],
+      "drops": [{ "rawMeat": [0.28], "rabbitPelt": [0.26] }],
+      "skillRewards": [{ "skillId": "hunting", "xp": 10 }],
+      "combat": {
+        "behavior": "flee",
+        "aggroRange": 6.5,
+        "preferredRange": 7.5,
+        "leashRange": 14,
+        "panicDuration": 5,
+        "fleeSpeedMultiplier": 1.2,
+        "basicAttack": {
+          "type": "melee",
+          "damage": 0,
+          "cooldown": 2,
+          "range": 0.6
+        },
+        "abilities": []
+      },
+      "renderStyle": {
+        "spriteType": "rabbit",
+        "sizeScale": 0.8,
+        "attackVisual": "none",
+        "palette": {
+          "body": "#d7d3c8",
+          "outline": "#302923",
+          "accent": "#f6f1e8",
+          "eye": "#120f0d"
+        }
+      }
+    },
+    {
+      "name": "Deer",
+      "tags": ["starter", "animal", "passive", "huntable", "deer", "hide", "meat", "antler"],
+      "health": 18,
+      "damage": [0, 0],
+      "speed": 1.35,
+      "respawnTime": [26, 50],
+      "drops": [{ "rawMeat": [0.3], "lightHide": [0.24], "deerAntler": [0.1] }],
+      "skillRewards": [{ "skillId": "hunting", "xp": 16 }],
+      "combat": {
+        "behavior": "flee",
+        "aggroRange": 7.5,
+        "preferredRange": 9,
+        "leashRange": 18,
+        "panicDuration": 6,
+        "fleeSpeedMultiplier": 1.12,
+        "basicAttack": {
+          "type": "melee",
+          "damage": 0,
+          "cooldown": 2,
+          "range": 0.75
+        },
+        "abilities": []
+      },
+      "renderStyle": {
+        "spriteType": "deer",
+        "sizeScale": 0.95,
+        "attackVisual": "none",
+        "palette": {
+          "body": "#9d7147",
+          "outline": "#2f2015",
+          "accent": "#dbc3a5",
+          "eye": "#120f0d"
+        }
+      }
+    },
+    {
+      "name": "Boar",
+      "tags": ["mid", "animal", "passive", "huntable", "boar", "hide", "meat", "tusk"],
+      "health": 28,
+      "damage": [0, 0],
+      "speed": 1.18,
+      "respawnTime": [32, 60],
+      "drops": [{ "rawMeat": [0.3], "thickHide": [0.23], "boarTusk": [0.11] }],
+      "skillRewards": [{ "skillId": "hunting", "xp": 22 }],
+      "combat": {
+        "behavior": "flee",
+        "aggroRange": 7,
+        "preferredRange": 8.5,
+        "leashRange": 18,
+        "panicDuration": 6,
+        "fleeSpeedMultiplier": 1.08,
+        "basicAttack": {
+          "type": "melee",
+          "damage": 0,
+          "cooldown": 2,
+          "range": 0.9
+        },
+        "abilities": []
+      },
+      "renderStyle": {
+        "spriteType": "boar",
+        "sizeScale": 0.98,
+        "attackVisual": "none",
+        "palette": {
+          "body": "#6e5444",
+          "outline": "#241a14",
+          "accent": "#ccb8a5",
+          "eye": "#120f0d"
+        }
+      }
     }
   ],
   "mobClusters": [
@@ -333,8 +511,18 @@
       "mobs": ["Zombie", "Skeleton"],
       "spawnRanges": [
         {
-          "range": [10, 40],
+          "range": [20, 160],
           "chance": 0.28,
+          "curve": "linear"
+        },
+        {
+          "range": [120, 360],
+          "chance": 0.2,
+          "curve": "linear"
+        },
+        {
+          "range": [300, 500],
+          "chance": 0.12,
           "curve": "linear"
         }
       ],
@@ -345,8 +533,18 @@
       "mobs": ["Skeleton Archer", "Orc Berserker"],
       "spawnRanges": [
         {
-          "range": [10, 28],
-          "chance": 0.3,
+          "range": [25, 180],
+          "chance": 0.24,
+          "curve": "linear"
+        },
+        {
+          "range": [120, 340],
+          "chance": 0.21,
+          "curve": "linear"
+        },
+        {
+          "range": [300, 500],
+          "chance": 0.13,
           "curve": "linear"
         }
       ],
@@ -357,8 +555,13 @@
       "mobs": ["Creeper"],
       "spawnRanges": [
         {
-          "range": [30, 50],
-          "chance": 0.2,
+          "range": [40, 220],
+          "chance": 0.18,
+          "curve": "linear"
+        },
+        {
+          "range": [180, 500],
+          "chance": 0.19,
           "curve": "linear"
         }
       ],
@@ -369,12 +572,79 @@
       "mobs": ["Spider"],
       "spawnRanges": [
         {
-          "range": [25, 45],
-          "chance": 0.1,
+          "range": [30, 200],
+          "chance": 0.16,
+          "curve": "linear"
+        },
+        {
+          "range": [150, 380],
+          "chance": 0.18,
+          "curve": "linear"
+        },
+        {
+          "range": [320, 500],
+          "chance": 0.11,
           "curve": "linear"
         }
       ],
       "maxSize": 7
+    },
+    {
+      "name": "Rabbit Warren",
+      "mobs": ["Rabbit"],
+      "spawnRanges": [
+        {
+          "range": [20, 170],
+          "chance": 0.18,
+          "curve": "linear"
+        },
+        {
+          "range": [120, 280],
+          "chance": 0.1,
+          "curve": "linear"
+        }
+      ],
+      "biomeTagsAny": ["meadow", "riverland", "temperate_forest"],
+      "bandTagsAny": ["starter_ring", "midlands"],
+      "maxSize": 6
+    },
+    {
+      "name": "Deer Herd",
+      "mobs": ["Deer"],
+      "spawnRanges": [
+        {
+          "range": [40, 220],
+          "chance": 0.16,
+          "curve": "linear"
+        },
+        {
+          "range": [160, 340],
+          "chance": 0.13,
+          "curve": "linear"
+        }
+      ],
+      "biomeTagsAny": ["meadow", "riverland", "temperate_forest", "deep_forest"],
+      "bandTagsAny": ["starter_ring", "midlands"],
+      "maxSize": 4
+    },
+    {
+      "name": "Boar Sounder",
+      "mobs": ["Boar"],
+      "spawnRanges": [
+        {
+          "range": [120, 320],
+          "chance": 0.14,
+          "curve": "linear"
+        },
+        {
+          "range": [260, 500],
+          "chance": 0.11,
+          "curve": "linear"
+        }
+      ],
+      "biomeTagsAny": ["deep_forest", "pine_hills", "swamp", "riverland"],
+      "bandTagsAny": ["midlands", "frontier"],
+      "maxSize": 3
     }
   ]
 }

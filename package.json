@@ -1,21 +1,67 @@
 {
-  "name": "vibemmo-prototype",
+  "name": "open-2d-mmo",
   "version": "0.1.0",
-  "description": "Basic MMO prototype from game_spec.md",
+  "description": "Browser-based 2D MMO prototype: authoritative Node.js WebSocket server with a canvas/Pixi client",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/desdae/open-2d-mmo.git"
+  },
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "start:dev": "node server.js",
     "build:client": "node scripts/build-client-bundle.js",
+    "benchmark:renderers": "node scripts/benchmark-renderers.js",
+    "sync:pixi": "node scripts/sync-pixi-runtime.js",
     "start:prod": "node scripts/run-prod.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "test:equipment:affixes": "node scripts/test-equipment-affixes.js",
-    "test:equipment:smoke": "node scripts/playwright-equipment-smoke.js"
+    "test:equipment:smoke": "node scripts/playwright-equipment-smoke.js",
+    "test:crafting:smoke": "node scripts/playwright-crafting-smoke.js",
+    "test:crafting:unit": "node scripts/test-crafting-system.js",
+    "test:channel:movement": "node scripts/playwright-channel-move-smoke.js",
+    "test:damage:smoke": "node scripts/playwright-damage-smoke.js",
+    "test:bots:unit": "node scripts/test-bot-system.js",
+    "test:constants:unit": "node scripts/test-game-constants.js",
+    "test:hunting:smoke": "node scripts/playwright-hunting-smoke.js",
+    "test:hunting:unit": "node scripts/test-hunting-system.js",
+    "test:security:chat": "node scripts/test-chat-sanitization.js",
+    "test:mobile:chat": "node scripts/playwright-mobile-chat-smoke.js",
+    "test:mobile:tracker": "node scripts/playwright-mobile-tracker-smoke.js",
+    "test:mobile:movement": "node scripts/playwright-mobile-movement-smoke.js",
+    "test:mobile:quest": "node scripts/playwright-mobile-quest-smoke.js",
+    "test:resources:smoke": "node scripts/playwright-resource-smoke.js",
+    "test:resources:unit": "node scripts/test-resource-system.js",
+    "test:security:ws": "node scripts/test-ws-rate-limit.js",
+    "test:skills:biomes": "node scripts/test-skills-biomes.js",
+    "test:quests:unit": "node scripts/test-procedural-quests.js",
+    "test:quests:smoke": "node scripts/playwright-quest-smoke.js",
+    "test:talents:smoke": "node scripts/playwright-talent-smoke.js"
   },
   "dependencies": {
+    "pixi.js": "^7.4.3",
     "ws": "^8.18.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "esbuild": "^0.27.3",
+    "jest": "^30.3.0",
     "playwright": "^1.58.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/server/__tests__/quest-system.test.js",
+      "/server/__tests__/quest-debug.test.js"
+    ],
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "server/**/*.js"
+    ]
   }
 }

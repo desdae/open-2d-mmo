@@ -4,7 +4,7 @@
     return;
   }
   const root = typeof globalThis !== "undefined" ? globalThis : window;
-  root.VibeTownLayout = rootFactory();
+  root.Open2dTownLayout = rootFactory();
 })(function buildTownLayoutModule() {
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -60,7 +60,17 @@
         x: centerTileX,
         y: centerTileY,
         interactRange: config.vendorInteractRange
-      }
+      },
+      questGivers: [
+        {
+          id: "town_herald",
+          name: "Town Herald",
+          x: centerTileX,
+          y: centerTileY + 3,
+          interactRange: 4.0,
+          questGiver: true
+        }
+      ]
     };
   }
 
@@ -165,7 +175,8 @@
       southGate: { ...layout.southGate },
       westGate: { ...layout.westGate },
       eastGate: { ...layout.eastGate },
-      vendor: layout.vendor ? { ...layout.vendor } : null
+      vendor: layout.vendor ? { ...layout.vendor } : null,
+      questGivers: Array.isArray(layout.questGivers) ? layout.questGivers.map(qg => ({ ...qg })) : []
     };
   }
 

@@ -1,4 +1,4 @@
-(function initVibeClientPlayerControls(globalScope) {
+(function initOpen2dClientPlayerControls(globalScope) {
   "use strict";
 
   function createPlayerControlTools(rawDeps) {
@@ -6,6 +6,10 @@
     const keys = deps.keys || {};
     const movementSync = deps.movementSync || { lastDx: 0, lastDy: 0, lastSentAt: 0 };
     const mouseState = deps.mouseState || { sx: 0, sy: 0 };
+    const touchJoystickState =
+      deps.touchJoystickState && typeof deps.touchJoystickState === "object"
+        ? deps.touchJoystickState
+        : { active: false, vectorDx: 0, vectorDy: 0 };
     const gameState = deps.gameState || {};
     const autoMoveTarget =
       deps.autoMoveTarget && typeof deps.autoMoveTarget === "object"
@@ -14,6 +18,20 @@
     const canvas = deps.canvas || null;
     const tileSize = Math.max(1, Number(deps.tileSize) || 32);
     const sendJsonMessage = typeof deps.sendJsonMessage === "function" ? deps.sendJsonMessage : () => false;
+
+    function clientPointToCanvasPoint(localCanvas, clientX, clientY) {
+      const sharedCanvasCoordinates = globalScope.Open2dClientCanvasCoordinates || null;
+      if (
+        sharedCanvasCoordinates &&
+        typeof sharedCanvasCoordinates.clientPointToCanvasPoint === "function"
+      ) {
+        return sharedCanvasCoordinates.clientPointToCanvasPoint(localCanvas, clientX, clientY);
+      }
+      return {
+        x: Number(clientX) || 0,
+        y: Number(clientY) || 0
+      };
+    }
 
     function getCurrentInputVector() {
       const left = keys.ArrowLeft || keys.KeyA;
@@ -26,6 +44,15 @@
       const len = Math.hypot(rawDx, rawDy);
 
       if (!len) {
+        const touchDx = Number(touchJoystickState.vectorDx) || 0;
+        const touchDy = Number(touchJoystickState.vectorDy) || 0;
+        const touchLen = Math.hypot(touchDx, touchDy);
+        if (touchJoystickState.active && touchLen > 0.0001) {
+          return {
+            dx: touchDx / touchLen,
+            dy: touchDy / touchLen
+          };
+        }
         return { dx: 0, dy: 0 };
       }
 
@@ -101,9 +128,9 @@
       if (!canvas || !event) {
         return;
       }
-      const rect = canvas.getBoundingClientRect();
-      mouseState.sx = event.clientX - rect.left;
-      mouseState.sy = event.clientY - rect.top;
+      const point = clientPointToCanvasPoint(canvas, event.clientX, event.clientY);
+      mouseState.sx = Number(point.x) || 0;
+      mouseState.sy = Number(point.y) || 0;
     }
 
     function screenToWorld(sx, sy, self) {
@@ -129,7 +156,7 @@
     };
   }
 
-  globalScope.VibeClientPlayerControls = Object.freeze({
+  globalScope.Open2dClientPlayerControls = Object.freeze({
     createPlayerControlTools
   });
 })(globalThis);

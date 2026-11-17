@@ -1,4 +1,4 @@
-(function initVibeClientVfxRuntime(globalScope) {
+(function initOpen2dClientVfxRuntime(globalScope) {
   "use strict";
 
   function createVfxRuntimeTools(rawDeps) {
@@ -212,7 +212,7 @@
     };
   }
 
-  globalScope.VibeClientVfxRuntime = Object.freeze({
+  globalScope.Open2dClientVfxRuntime = Object.freeze({
     createVfxRuntimeTools
   });
 })(globalThis);

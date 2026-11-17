@@ -1,3 +1,8 @@
+const { createEffectEngine } = require("../gameplay/effects/effect-engine");
+const { buildItemUseEffectDefsFromItemDef } = require("../gameplay/effects/item-use-effect-defs");
+const { MAX_CHAT_MESSAGE_LENGTH, MAX_PLAYER_LEVEL } = require("../../config/game-constants");
+const { sanitizeChatText } = require("./chat-sanitization");
+
 function createJoinedPlayer(ws, msg, deps) {
   const joinResult = deps.createPlayer({
     ws,
@@ -10,41 +15,83 @@ function createJoinedPlayer(ws, msg, deps) {
     return joinResult;
   }
   const player = joinResult.player;
+  const staticClientConfig =
+    typeof deps.getStaticClientConfigSnapshot === "function"
+      ? deps.getStaticClientConfigSnapshot()
+      : {
+          version: "",
+          classes: deps.CLASS_CONFIG.clientClassDefs,
+          abilities: deps.ABILITY_CONFIG.clientAbilityDefs,
+          items: deps.ITEM_CONFIG.clientItemDefs,
+          equipment: deps.ITEM_CONFIG.clientEquipmentConfig || { itemSlots: [] },
+          sounds: deps.buildSoundManifest()
+        };
+  const configVersion = String(staticClientConfig && staticClientConfig.version || "").trim();
+  const clientConfigVersion = String(msg && msg.configVersion || "").trim();
+  const shouldSendStaticConfig = !configVersion || !clientConfigVersion || clientConfigVersion !== configVersion;
+  const viewportState =
+    typeof deps.updatePlayerViewport === "function"
+      ? deps.updatePlayerViewport(player, msg.viewportWidth, msg.viewportHeight)
+      : null;
 
-  deps.sendJson(ws, {
+  const welcomePayload = {
     type: "welcome",
     id: player.id,
+    configVersion,
     selfStatic: {
       id: player.id,
       name: player.name,
       classType: player.classType,
       isAdmin: !!player.isAdmin,
       mana: player.mana,
-      maxMana: player.maxMana
+      maxMana: player.maxMana,
+      skills: player.skills && typeof player.skills === "object" ? { ...player.skills } : {}
     },
     map: { width: deps.MAP_WIDTH, height: deps.MAP_HEIGHT },
-    visibilityRange: deps.VISIBILITY_RANGE,
-    equipment: deps.ITEM_CONFIG.clientEquipmentConfig || { itemSlots: [] },
-    sounds: deps.buildSoundManifest()
-  });
-  deps.sendJson(ws, {
-    type: "class_defs",
-    classes: deps.CLASS_CONFIG.clientClassDefs,
-    abilities: deps.ABILITY_CONFIG.clientAbilityDefs
-  });
-  deps.sendJson(ws, {
-    type: "item_defs",
-    items: deps.ITEM_CONFIG.clientItemDefs
-  });
-  deps.sendJson(ws, {
-    type: "equipment_config",
-    equipment: deps.ITEM_CONFIG.clientEquipmentConfig || { itemSlots: [] }
-  });
+    visibilityRange: viewportState ? Math.max(1, viewportState.x, viewportState.y) : deps.VISIBILITY_RANGE,
+    talentTree: typeof deps.getTalentTreeData === "function" ? deps.getTalentTreeData(player) : null,
+    visibilityRangeX: viewportState ? viewportState.x : deps.VISIBILITY_RANGE,
+    visibilityRangeY: viewportState ? viewportState.y : deps.VISIBILITY_RANGE
+  };
+  if (shouldSendStaticConfig) {
+    welcomePayload.equipment = staticClientConfig.equipment || { itemSlots: [] };
+    welcomePayload.sounds = Array.isArray(staticClientConfig.sounds) ? staticClientConfig.sounds : [];
+  }
+
+  deps.sendJson(ws, welcomePayload);
+
+  if (shouldSendStaticConfig) {
+    deps.sendJson(ws, {
+      type: "class_defs",
+      classes: staticClientConfig.classes,
+      abilities: staticClientConfig.abilities
+    });
+    deps.sendJson(ws, {
+      type: "item_defs",
+      items: staticClientConfig.items
+    });
+    deps.sendJson(ws, {
+      type: "equipment_config",
+      equipment: staticClientConfig.equipment || { itemSlots: [] }
+    });
+  }
   deps.sendInventoryState(player);
   deps.sendEquipmentState(player);
   deps.sendSelfProgress(player);
 
+  // Broadcast system message about player joining
+  if (typeof deps.broadcastChatMessage === "function") {
+    deps.broadcastChatMessage({ name: "System", isAdmin: false }, `${player.name} has joined the game.`);
+  }
+
   return { player };
+}
+
+function handleViewportMessage(player, msg, deps) {
+  if (!player || typeof deps.updatePlayerViewport !== "function") {
+    return;
+  }
+  deps.updatePlayerViewport(player, msg.viewportWidth, msg.viewportHeight);
 }
 
 function handleMoveMessage(player, msg, deps) {
@@ -89,18 +136,13 @@ function handleUseItemMessage(player, msg, deps) {
     return;
   }
   const itemDef = deps.ITEM_CONFIG.itemDefs.get(itemId);
-  if (!itemDef || !itemDef.effect || typeof itemDef.effect.type !== "string") {
+  const effectDefs = buildItemUseEffectDefsFromItemDef(itemDef);
+  if (!effectDefs.length) {
     return;
   }
-  const effectType = String(itemDef.effect.type).trim().toLowerCase();
-  if (effectType !== "heal" && effectType !== "mana") {
-    return;
-  }
-  const effectValue = Math.max(0, Number(itemDef.effect.value) || 0);
-  const effectDuration = Math.max(0, Number(itemDef.effect.duration) || 0);
-  if (effectValue <= 0) {
-    return;
-  }
+  const effectType = String(effectDefs[0].type || "").trim().toLowerCase();
+  const effectValue = Math.max(0, Number(effectDefs[0].amount) || 0);
+  const effectDuration = Math.max(0, Number(effectDefs[0].duration) || 0);
   if (!deps.consumeInventoryItem(player, itemId, 1)) {
     return;
   }
@@ -108,21 +150,41 @@ function handleUseItemMessage(player, msg, deps) {
   let healedNow = 0;
   let restoredManaNow = 0;
   let overTime = false;
-  if (effectType === "heal") {
-    if (effectDuration > 0) {
-      overTime = deps.addHealOverTimeEffect(player, effectValue, effectDuration);
-    } else {
-      const beforeHp = player.hp;
-      player.hp = deps.clamp(player.hp + effectValue, 0, player.maxHp);
-      healedNow = Math.max(0, player.hp - beforeHp);
+
+  const effectEngine = createEffectEngine({ clamp: deps.clamp });
+  const compiled = effectEngine.compile(effectDefs, { defaultTrigger: "onUse" });
+  effectEngine.run(compiled, "onUse", {
+    now: Date.now(),
+    source: { id: player.id },
+    target: player,
+    ops: {
+      applyHeal: (target, amount, durationSec) => {
+        if (!target) {
+          return;
+        }
+        if ((Number(durationSec) || 0) > 0) {
+          // `amount` is total value across `durationSec`, matching existing potion behavior.
+          overTime = deps.addHealOverTimeEffect(target, amount, durationSec) || overTime;
+          return;
+        }
+        const beforeHp = target.hp;
+        target.hp = deps.clamp(target.hp + amount, 0, target.maxHp);
+        healedNow += Math.max(0, target.hp - beforeHp);
+      },
+      applyMana: (target, amount, durationSec) => {
+        if (!target) {
+          return;
+        }
+        if ((Number(durationSec) || 0) > 0) {
+          overTime = deps.addManaOverTimeEffect(target, amount, durationSec) || overTime;
+          return;
+        }
+        const beforeMana = target.mana;
+        target.mana = deps.clamp(target.mana + amount, 0, target.maxMana);
+        restoredManaNow += Math.max(0, target.mana - beforeMana);
+      }
     }
-  } else if (effectDuration > 0) {
-    overTime = deps.addManaOverTimeEffect(player, effectValue, effectDuration);
-  } else {
-    const beforeMana = player.mana;
-    player.mana = deps.clamp(player.mana + effectValue, 0, player.maxMana);
-    restoredManaNow = Math.max(0, player.mana - beforeMana);
-  }
+  });
 
   deps.sendInventoryState(player);
   deps.syncPlayerCopperFromInventory(player, true);
@@ -152,6 +214,39 @@ function sendAdminBotInspect(player, botData, deps) {
     type: "admin_bot_inspect",
     bot: botData || null
   });
+}
+
+function handleQuestNpcInteraction(player, npcId, deps, options = {}) {
+  const opts = options && typeof options === "object" ? options : {};
+  const sendNoQuestDialogue = opts.sendNoQuestDialogue !== false;
+  const npc = deps.getQuestNpc(npcId);
+  if (!npc || !deps.isPlayerNearNpc(player, npcId)) {
+    return false;
+  }
+
+  const talkQuest = deps.questTools.getTalkQuestForNpc(player, npcId);
+  if (talkQuest && talkQuest.objective && talkQuest.objective.type === "talk") {
+    const updatedQuestIds = deps.updateQuestObjective(player, "talk", npcId, 1);
+    if (Array.isArray(updatedQuestIds) && updatedQuestIds.length > 0) {
+      deps.sendSelfProgress(player);
+    }
+  }
+  if (!sendNoQuestDialogue && !talkQuest) {
+    return true;
+  }
+
+  const dialogue = deps.dialogueTools.startDialogue(player.id, player, npcId);
+  if (
+    dialogue &&
+    !dialogue.error &&
+    (sendNoQuestDialogue || String(dialogue.dialogueType || "") !== "noQuest")
+  ) {
+    deps.sendJson(player.ws, {
+      type: "quest_dialogue",
+      ...dialogue
+    });
+  }
+  return true;
 }
 
 function routeIncomingMessage({ rawMessage, ws, player, deps }) {
@@ -191,6 +286,11 @@ function routeIncomingMessage({ rawMessage, ws, player, deps }) {
     return { player };
   }
 
+  if (msg.type === "viewport") {
+    handleViewportMessage(player, msg, deps);
+    return { player };
+  }
+
   if (msg.type === "use_ability") {
     const abilityId = String(msg.abilityId || "").trim();
     const dx = Number(msg.dx);
@@ -225,6 +325,41 @@ function routeIncomingMessage({ rawMessage, ws, player, deps }) {
     return { player };
   }
 
+  if (msg.type === "spend_talent_point") {
+    const talentId = String(msg.talentId || "").trim();
+    console.log('[router] spend_talent_point message received:', talentId);
+    if (!talentId) {
+      console.log('[router] No talentId provided');
+      return { player };
+    }
+    const result = deps.spendTalentPoint(player, talentId);
+    console.log('[router] spendTalentPoint result:', result);
+    if (result.success) {
+      console.log('[router] Sending self_progress');
+      deps.sendSelfProgress(player);
+    } else {
+      console.log('[router] Sending talent_error:', result.reason);
+      deps.sendJson(player.ws, {
+        type: "talent_error",
+        reason: result.reason || "Failed to spend talent point"
+      });
+    }
+    return { player };
+  }
+
+  if (msg.type === "get_talent_tree") {
+    console.log('[router] get_talent_tree requested');
+    const talentTree = deps.getTalentTreeData(player);
+    if (talentTree) {
+      console.log('[router] Sending talent_tree with', talentTree.availablePoints, 'points');
+      deps.sendJson(player.ws, {
+        type: "talent_update",
+        talentTree
+      });
+    }
+    return { player };
+  }
+
   if (msg.type === "cast") {
     const dx = Number(msg.dx);
     const dy = Number(msg.dy);
@@ -252,6 +387,42 @@ function routeIncomingMessage({ rawMessage, ws, player, deps }) {
     const targetX = Number(msg.x);
     const targetY = Number(msg.y);
     deps.tryPickupLootBag(player, targetX, targetY);
+    return { player };
+  }
+
+  if (msg.type === "interact_resource") {
+    if (player.hp <= 0) {
+      return { player };
+    }
+    const result = deps.interactWithResourceNode(player, {
+      id: msg.resourceNodeId,
+      x: Number(msg.x),
+      y: Number(msg.y)
+    });
+    if (!result || !result.ok) {
+      deps.sendJson(player.ws, {
+        type: "resource_gather_error",
+        message: result && result.message ? result.message : "Could not gather that resource."
+      });
+    }
+    return { player };
+  }
+
+  if (msg.type === "craft_recipe") {
+    const recipeId = String(msg.recipeId || "").trim();
+    const times = Math.max(1, Math.floor(Number(msg.times) || 1));
+    if (!recipeId || typeof deps.craftRecipe !== "function") {
+      return { player };
+    }
+    const result = deps.craftRecipe(player, recipeId, times);
+    if (!result || !result.ok) {
+      deps.sendJson(player.ws, {
+        type: "craft_result",
+        ok: false,
+        recipeId,
+        message: result && result.message ? result.message : "Could not craft that item."
+      });
+    }
     return { player };
   }
 
@@ -316,6 +487,151 @@ function routeIncomingMessage({ rawMessage, ws, player, deps }) {
     return { player };
   }
 
+  if (msg.type === "admin_grant_equipment_item") {
+    if (!player.isAdmin) {
+      deps.sendJson(player.ws, { type: "error", message: "Admin rights required." });
+      return { player };
+    }
+    if (typeof deps.rollEquipmentItemAt !== "function") {
+      deps.sendJson(player.ws, { type: "error", message: "Equipment roll unavailable." });
+      return { player };
+    }
+
+    const minAffixes = Math.max(0, Math.floor(Number(msg.minAffixes) || 0));
+    const maxAttempts = 300;
+    let rolled = null;
+    let bestAffixCount = -1;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const candidate = deps.rollEquipmentItemAt(player.x, player.y);
+      if (!candidate) {
+        continue;
+      }
+      const affixCount = Array.isArray(candidate.affixes) ? candidate.affixes.length : 0;
+      if (affixCount > bestAffixCount) {
+        rolled = candidate;
+        bestAffixCount = affixCount;
+      }
+      if (affixCount >= minAffixes) {
+        rolled = candidate;
+        bestAffixCount = affixCount;
+        break;
+      }
+    }
+
+    if (!rolled) {
+      deps.sendJson(player.ws, { type: "error", message: "Failed to roll equipment item." });
+      return { player };
+    }
+    if (bestAffixCount < minAffixes) {
+      deps.sendJson(player.ws, {
+        type: "error",
+        message: `Failed to roll equipment with at least ${minAffixes} affixes.`
+      });
+      return { player };
+    }
+
+    const addResult = deps.addItemsToInventory(player, [rolled]);
+    if (!addResult || addResult.changed !== true) {
+      deps.sendJson(player.ws, { type: "error", message: "Inventory full." });
+      return { player };
+    }
+
+    deps.sendInventoryState(player);
+    deps.sendJson(player.ws, {
+      type: "admin_action_result",
+      message: `Granted ${String(rolled.name || rolled.itemId || "equipment")}.`
+    });
+    return { player };
+  }
+
+  if (msg.type === "admin_grant_item") {
+    if (!player.isAdmin) {
+      deps.sendJson(player.ws, { type: "error", message: "Admin rights required." });
+      return { player };
+    }
+    const itemId = String(msg.itemId || "").trim();
+    const qty = Math.max(1, Math.floor(Number(msg.qty) || 1));
+    const itemDef = deps.ITEM_CONFIG && deps.ITEM_CONFIG.itemDefs instanceof Map
+      ? deps.ITEM_CONFIG.itemDefs.get(itemId)
+      : null;
+    if (!itemDef) {
+      deps.sendJson(player.ws, { type: "error", message: "Unknown item." });
+      return { player };
+    }
+    const result = deps.addItemsToInventory(player, [{ itemId, qty }]);
+    deps.sendInventoryState(player);
+    deps.syncPlayerCopperFromInventory(player, true);
+    deps.sendSelfProgress(player);
+    deps.sendJson(player.ws, {
+      type: "admin_action_result",
+      ok: !!(result && Array.isArray(result.added) && result.added.length > 0),
+      action: "grant_item",
+      itemId,
+      qty
+    });
+    return { player };
+  }
+
+  if (msg.type === "admin_set_level") {
+    if (!player.isAdmin) {
+      deps.sendJson(player.ws, { type: "error", message: "Admin rights required." });
+      return { player };
+    }
+    const requested = Math.floor(Number(msg.level) || 0);
+    const level = deps.clamp
+      ? deps.clamp(requested, 1, MAX_PLAYER_LEVEL)
+      : Math.max(1, Math.min(MAX_PLAYER_LEVEL, requested));
+    player.level = level;
+    player.exp = 0;
+    if (typeof deps.expNeededForLevel === "function") {
+      player.expToNext = deps.expNeededForLevel(player.level);
+    }
+    player.skillPoints = deps.clamp ? deps.clamp(player.level - 1, 0, 65535) : Math.max(0, player.level - 1);
+
+    const talentTree = typeof deps.getTalentTreeData === "function" ? deps.getTalentTreeData(player) : null;
+    if (talentTree) {
+      player.talentPoints = Math.max(0, Math.floor(Number(talentTree.availablePoints) || 0));
+      deps.sendJson(player.ws, {
+        type: "talent_update",
+        talentTree
+      });
+    }
+
+    deps.sendSelfProgress(player);
+    deps.sendJson(player.ws, {
+      type: "admin_action_result",
+      message: `Level set to ${player.level}.`
+    });
+    return { player };
+  }
+
+  if (msg.type === "admin_complete_quest") {
+    if (!player.isAdmin) {
+      deps.sendJson(player.ws, { type: "error", message: "Admin rights required." });
+      return { player };
+    }
+    const questId = String(msg.questId || "").trim();
+    if (!questId) {
+      return { player };
+    }
+    const result = typeof deps.debugCompleteQuest === "function"
+      ? deps.debugCompleteQuest(player, questId)
+      : { success: false, reason: "Quest debug tools unavailable." };
+    if (!result || !result.success) {
+      deps.sendJson(player.ws, {
+        type: "error",
+        message: result && result.reason ? String(result.reason) : "Failed to complete quest objectives."
+      });
+      return { player };
+    }
+    deps.sendSelfProgress(player);
+    deps.sendJson(player.ws, {
+      type: "admin_action_result",
+      message: `Marked quest objectives complete for ${questId}.`
+    });
+    return { player };
+  }
+
   if (msg.type === "create_bot_player") {
     if (!player.isAdmin) {
       deps.sendJson(player.ws, { type: "error", message: "Admin rights required." });
@@ -335,6 +651,26 @@ function routeIncomingMessage({ rawMessage, ws, player, deps }) {
     });
     sendAdminBotList(player, deps);
     sendAdminBotInspect(player, deps.inspectBot(createResult.player.id), deps);
+    return { player };
+  }
+
+  if (msg.type === "admin_spawn_benchmark_scene") {
+    if (!player.isAdmin) {
+      deps.sendJson(player.ws, { type: "error", message: "Admin rights required." });
+      return { player };
+    }
+    const result = deps.createBenchmarkScene ? deps.createBenchmarkScene(player.id) : { ok: false, error: "Benchmark scene unavailable." };
+    if (!result || result.ok !== true) {
+      deps.sendJson(player.ws, {
+        type: "error",
+        message: result && result.error ? String(result.error) : "Failed to create benchmark scene."
+      });
+      return { player };
+    }
+    deps.sendJson(player.ws, {
+      type: "admin_action_result",
+      message: `Benchmark scene ready (${result.botCount} bots, ${result.mobCount} mobs).`
+    });
     return { player };
   }
 
@@ -405,6 +741,87 @@ function routeIncomingMessage({ rawMessage, ws, player, deps }) {
     });
     sendAdminBotList(player, deps);
     sendAdminBotInspect(player, deps.inspectBot(botId), deps);
+    return { player };
+  }
+
+  if (msg.type === "chat_message") {
+    if (player.hp <= 0) {
+      return { player };
+    }
+    const text = sanitizeChatText(msg.text, MAX_CHAT_MESSAGE_LENGTH);
+    if (!text) {
+      return { player };
+    }
+
+    // Broadcast chat message to all players
+    deps.broadcastChatMessage(player, text);
+    return { player };
+  }
+
+  // Quest message handlers
+  if (msg.type === "quest_interact") {
+    const npcId = String(msg.npcId || "").trim();
+    if (!npcId) {
+      return { player };
+    }
+    handleQuestNpcInteraction(player, npcId, deps, { sendNoQuestDialogue: true });
+    return { player };
+  }
+
+  if (msg.type === "talk_to_npc") {
+    const npcId = String(msg.npcId || "").trim();
+    if (!npcId) {
+      return { player };
+    }
+    handleQuestNpcInteraction(player, npcId, deps, { sendNoQuestDialogue: false });
+    return { player };
+  }
+
+  if (msg.type === "quest_select_option") {
+    const nodeId = String(msg.nodeId || "").trim();
+    if (!nodeId) {
+      return { player };
+    }
+    
+    const result = deps.dialogueTools.selectDialogueOption(player.id, player, nodeId);
+    if (result.error) {
+      deps.sendJson(player.ws, {
+        type: "quest_dialogue_error",
+        message: result.error
+      });
+    } else if (result.questAccepted) {
+      deps.sendJson(player.ws, {
+        type: "quest_accepted",
+        questId: result.questId,
+        questTitle: result.questTitle
+      });
+      deps.sendSelfProgress(player);
+    } else if (result.questCompleted) {
+      deps.sendJson(player.ws, {
+        type: "quest_completed",
+        questId: result.questId,
+        questTitle: result.questTitle,
+        rewards: result.rewards
+      });
+      deps.sendSelfProgress(player);
+    }
+    return { player };
+  }
+
+  if (msg.type === "abandon_quest") {
+    const questId = String(msg.questId || "").trim();
+    if (!questId) {
+      return { player };
+    }
+    
+    const result = deps.abandonQuest(player, questId);
+    if (result.success) {
+      deps.sendSelfProgress(player);
+      deps.sendJson(player.ws, {
+        type: "quest_abandoned",
+        questId
+      });
+    }
     return { player };
   }
 

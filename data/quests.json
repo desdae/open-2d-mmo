@@ -1,0 +1,43 @@
+{
+  "quests": [
+    {
+      "id": "quest_first_steps",
+      "title": "First Steps",
+      "description": "Learn the basics of survival in Open 2D MMO by speaking with the Town Herald and defeating some zombies.",
+      "minLevel": 1,
+      "npcGiverId": "town_herald",
+      "npcCompleteId": "town_herald",
+      "objectives": [
+        { "type": "talk", "targetId": "starter_vendor", "description": "Speak with the Quartermaster" },
+        { "type": "kill", "mobId": "Zombie", "count": 3, "description": "Kill 3 zombies" }
+      ],
+      "rewards": { "exp": 50, "items": [{ "itemId": "healthPotion01", "qty": 2 }] },
+      "dialogue": {
+        "offer": [
+          { "id": "start", "text": "Greetings, adventurer! Welcome to Open 2D MMO.", "speaker": "Town Herald" },
+          { "text": "The lands beyond the town are dangerous. Could you help me with something?", "speaker": "Town Herald", "choices": [
+            { "text": "I'll help!", "next": "accept" },
+            { "text": "What do you need?", "next": "details" },
+            { "text": "Not right now.", "next": "decline" }
+          ]},
+          { "id": "details", "text": "The Quartermaster has supplies you need, and there are zombies to the east. I need you to speak with the Quartermaster and defeat 3 zombies.", "speaker": "Town Herald", "choices": [
+            { "text": "I'll do it!", "next": "accept" },
+            { "text": "Sounds dangerous. Maybe later.", "next": "decline" }
+          ]},
+          { "id": "accept", "text": "Wonderful! Speak with the Quartermaster first, then head east to kill zombies. Return to me when done.", "speaker": "Town Herald", "questStart": true },
+          { "id": "decline", "text": "Very well. Return if you change your mind.", "speaker": "Town Herald" }
+        ],
+        "inProgress": [
+          { "text": "You haven't finished yet. The Quartermaster is to the south, and zombies are to the east.", "speaker": "Town Herald" }
+        ],
+        "complete": [
+          { "id": "complete", "text": "Excellent work, adventurer! You've proven yourself capable. Here is your reward.", "speaker": "Town Herald", "questComplete": true }
+        ]
+      }
+    }
+  ],
+  "npcs": {
+    "town_herald": { "name": "Town Herald", "x": 500, "y": 505, "interactRange": 2.5, "questGiver": true },
+    "starter_vendor": { "name": "Town Quartermaster", "x": 500, "y": 495, "interactRange": 2.25, "questGiver": true }
+  }
+}

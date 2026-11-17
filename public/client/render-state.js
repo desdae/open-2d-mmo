@@ -1,4 +1,4 @@
-(function initVibeClientRenderState(globalScope) {
+(function initOpen2dClientRenderState(globalScope) {
   "use strict";
 
   function fallbackClamp(value, min, max) {
@@ -66,7 +66,8 @@
         players: blendEntityList(previous.players, current.players, alpha),
         projectiles: blendEntityList(previous.projectiles, current.projectiles, alpha),
         mobs: blendEntityList(previous.mobs, current.mobs, alpha),
-        lootBags: blendEntityList(previous.lootBags, current.lootBags, alpha)
+        lootBags: blendEntityList(previous.lootBags, current.lootBags, alpha),
+        resourceNodes: blendEntityList(previous.resourceNodes, current.resourceNodes, alpha)
       };
     }
 
@@ -76,7 +77,7 @@
     };
   }
 
-  globalScope.VibeClientRenderState = Object.freeze({
+  globalScope.Open2dClientRenderState = Object.freeze({
     createRenderStateInterpolator
   });
 })(globalThis);

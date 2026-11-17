@@ -4,7 +4,7 @@
     return;
   }
   const root = typeof globalThis !== "undefined" ? globalThis : window;
-  root.VibeSummonLayout = rootFactory();
+  root.Open2dSummonLayout = rootFactory();
 })(function buildSummonLayout() {
   function getSummonCountForLevel(baseCount, countPerLevel, level, options = {}) {
     const base = Math.max(1, Math.round(Number(baseCount) || 1));

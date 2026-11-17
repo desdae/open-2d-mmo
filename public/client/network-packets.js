@@ -1,4 +1,4 @@
-(function initVibeClientNetworkPackets(globalScope) {
+(function initOpen2dClientNetworkPackets(globalScope) {
   "use strict";
 
   function fallbackClamp(value, min, max) {
@@ -37,6 +37,8 @@
     const areaEffectKindArea = Number.isFinite(Number(deps.AREA_EFFECT_KIND_AREA)) ? Number(deps.AREA_EFFECT_KIND_AREA) : 0;
     const areaEffectKindBeam = Number.isFinite(Number(deps.AREA_EFFECT_KIND_BEAM)) ? Number(deps.AREA_EFFECT_KIND_BEAM) : 1;
     const areaEffectKindSummon = Number.isFinite(Number(deps.AREA_EFFECT_KIND_SUMMON)) ? Number(deps.AREA_EFFECT_KIND_SUMMON) : 2;
+    const castEventFlagCharge =
+      Number.isFinite(Number(deps.CAST_EVENT_FLAG_CHARGE)) ? Number(deps.CAST_EVENT_FLAG_CHARGE) : 1 << 1;
 
     const {
       ENTITY_PROTO_TYPE,
@@ -75,6 +77,7 @@
       MOB_EFFECT_FLAG_SLOW,
       MOB_EFFECT_FLAG_REMOVE,
       MOB_EFFECT_FLAG_BURN,
+      MOB_EFFECT_FLAG_BLOOD_WRATH,
       POS_SCALE,
       MANA_SCALE,
       HEAL_SCALE,
@@ -160,6 +163,20 @@
     const addMobDeathEvents =
       typeof deps.addMobDeathEvents === "function" ? deps.addMobDeathEvents : () => {};
 
+    function pushRenderableSnapshot() {
+      if (!gameState.self) {
+        return;
+      }
+      pushSnapshot({
+        self: gameState.self,
+        players: gameState.players,
+        projectiles: gameState.projectiles,
+        mobs: gameState.mobs,
+        lootBags: gameState.lootBags,
+        resourceNodes: gameState.resourceNodes
+      });
+    }
+
     function parseEntityBinaryPacket(arrayBuffer) {
       const view = new DataView(arrayBuffer);
       if (view.byteLength < 20) {
@@ -185,17 +202,17 @@
       if (selfMode === SELF_MODE_FULL) {
         const xq = view.getUint16(offset, true);
         const yq = view.getUint16(offset + 2, true);
-        const hp = view.getUint8(offset + 4);
-        const maxHp = view.getUint8(offset + 5);
-        const mana = view.getUint16(offset + 6, true) / MANA_SCALE;
-        const maxMana = view.getUint16(offset + 8, true) / MANA_SCALE;
-        const pendingHeal = view.getUint16(offset + 10, true) / HEAL_SCALE;
-        const pendingMana = view.getUint16(offset + 12, true) / MANA_SCALE;
-        const copper = view.getUint16(offset + 14, true);
-        const level = view.getUint16(offset + 16, true);
-        const exp = view.getUint32(offset + 18, true);
-        const expToNext = view.getUint32(offset + 22, true);
-        offset += 26;
+        const hp = view.getUint16(offset + 4, true);
+        const maxHp = view.getUint16(offset + 6, true);
+        const mana = view.getUint16(offset + 8, true) / MANA_SCALE;
+        const maxMana = view.getUint16(offset + 10, true) / MANA_SCALE;
+        const pendingHeal = view.getUint16(offset + 12, true) / HEAL_SCALE;
+        const pendingMana = view.getUint16(offset + 14, true) / MANA_SCALE;
+        const copper = view.getUint16(offset + 16, true);
+        const level = view.getUint16(offset + 18, true);
+        const exp = view.getUint32(offset + 20, true);
+        const expToNext = view.getUint32(offset + 24, true);
+        offset += 28;
         const prevSelf = entityRuntime.self;
         entityRuntime.self = {
           x: xq / POS_SCALE,
@@ -243,12 +260,12 @@
         base._xq = clamp(base._xq + dx, 0, 65535);
         base._yq = clamp(base._yq + dy, 0, 65535);
         if (selfFlags & DELTA_FLAG_HP_CHANGED) {
-          base.hp = view.getUint8(offset);
-          offset += 1;
+          base.hp = view.getUint16(offset, true);
+          offset += 2;
         }
         if (selfFlags & DELTA_FLAG_MAX_HP_CHANGED) {
-          base.maxHp = view.getUint8(offset);
-          offset += 1;
+          base.maxHp = view.getUint16(offset, true);
+          offset += 2;
         }
         if (selfFlags & DELTA_FLAG_MANA_CHANGED) {
           base.mana = view.getUint16(offset, true) / MANA_SCALE;
@@ -297,9 +314,9 @@
         const id = view.getUint16(offset, true);
         const xq = view.getUint16(offset + 2, true);
         const yq = view.getUint16(offset + 4, true);
-        const hp = view.getUint8(offset + 6);
-        const maxHp = view.getUint8(offset + 7);
-        offset += 8;
+        const hp = view.getUint16(offset + 6, true);
+        const maxHp = view.getUint16(offset + 8, true);
+        offset += 10;
 
         const meta = entityRuntime.playerMeta.get(id);
         entityRuntime.players.set(id, {
@@ -346,12 +363,12 @@
         entity._xq = clamp(entity._xq + dx, 0, 65535);
         entity._yq = clamp(entity._yq + dy, 0, 65535);
         if (flags & DELTA_FLAG_HP_CHANGED) {
-          entity.hp = view.getUint8(offset);
-          offset += 1;
+          entity.hp = view.getUint16(offset, true);
+          offset += 2;
         }
         if (flags & DELTA_FLAG_MAX_HP_CHANGED) {
-          entity.maxHp = view.getUint8(offset);
-          offset += 1;
+          entity.maxHp = view.getUint16(offset, true);
+          offset += 2;
         }
         entity.x = entity._xq / POS_SCALE;
         entity.y = entity._yq / POS_SCALE;
@@ -362,14 +379,15 @@
         const id = view.getUint16(offset, true);
         const xq = view.getUint16(offset + 2, true);
         const yq = view.getUint16(offset + 4, true);
-        const hp = view.getUint8(offset + 6);
-        const maxHp = view.getUint8(offset + 7);
-        offset += 8;
+        const hp = view.getUint16(offset + 6, true);
+        const maxHp = view.getUint16(offset + 8, true);
+        offset += 10;
         const meta = entityRuntime.mobMeta.get(id);
 
         entityRuntime.mobs.set(id, {
           id,
           name: (meta && meta.name) || `Mob ${id}`,
+          level: Math.max(1, Math.floor(Number((meta && meta.level) || 1))),
           renderStyle: (meta && meta.renderStyle) || null,
           x: xq / POS_SCALE,
           y: yq / POS_SCALE,
@@ -400,6 +418,7 @@
         const entity = entityRuntime.mobs.get(id) || {
           id,
           name: ((entityRuntime.mobMeta.get(id) || {}).name) || `Mob ${id}`,
+          level: Math.max(1, Math.floor(Number(((entityRuntime.mobMeta.get(id) || {}).level) || 1))),
           renderStyle: ((entityRuntime.mobMeta.get(id) || {}).renderStyle) || null,
           x: 0,
           y: 0,
@@ -411,12 +430,12 @@
         entity._xq = clamp(entity._xq + dx, 0, 65535);
         entity._yq = clamp(entity._yq + dy, 0, 65535);
         if (flags & DELTA_FLAG_HP_CHANGED) {
-          entity.hp = view.getUint8(offset);
-          offset += 1;
+          entity.hp = view.getUint16(offset, true);
+          offset += 2;
         }
         if (flags & DELTA_FLAG_MAX_HP_CHANGED) {
-          entity.maxHp = view.getUint8(offset);
-          offset += 1;
+          entity.maxHp = view.getUint16(offset, true);
+          offset += 2;
         }
         entity.x = entity._xq / POS_SCALE;
         entity.y = entity._yq / POS_SCALE;
@@ -531,7 +550,8 @@
           players: gameState.players,
           projectiles: gameState.projectiles,
           mobs: gameState.mobs,
-          lootBags: gameState.lootBags
+          lootBags: gameState.lootBags,
+          resourceNodes: gameState.resourceNodes
         });
       }
     }
@@ -705,20 +725,26 @@
       if (view.byteLength < 4) {
         return;
       }
-      if (view.getUint8(0) !== MOB_META_PROTO_TYPE || view.getUint8(1) !== MOB_META_PROTO_VERSION) {
+      if (view.getUint8(0) !== MOB_META_PROTO_TYPE) {
+        return;
+      }
+      const version = view.getUint8(1);
+      if (version !== 1 && version !== MOB_META_PROTO_VERSION) {
         return;
       }
 
       const count = view.getUint16(2, true);
       let offset = 4;
       for (let i = 0; i < count; i += 1) {
-        if (offset + 4 > view.byteLength) {
+        const headerSize = version >= 2 ? 6 : 4;
+        if (offset + headerSize > view.byteLength) {
           break;
         }
         const id = view.getUint8(offset);
         const nameLen = view.getUint8(offset + 1);
-        const styleLen = view.getUint16(offset + 2, true);
-        offset += 4;
+        const level = version >= 2 ? view.getUint16(offset + 2, true) : 1;
+        const styleLen = view.getUint16(offset + (version >= 2 ? 4 : 2), true);
+        offset += headerSize;
         if (offset + nameLen + styleLen > view.byteLength) {
           break;
         }
@@ -739,16 +765,18 @@
           offset += styleLen;
         }
 
-        entityRuntime.mobMeta.set(id, { name, renderStyle });
+        entityRuntime.mobMeta.set(id, { name, level, renderStyle });
         const existing = entityRuntime.mobs.get(id);
         if (existing) {
           existing.name = name;
+          existing.level = level;
           existing.renderStyle = renderStyle;
           entityRuntime.mobs.set(id, existing);
         }
       }
 
       syncEntityArraysToGameState();
+      pushRenderableSnapshot();
     }
 
     function parseProjectileMetaBinaryPacket(arrayBuffer) {
@@ -807,6 +835,7 @@
       }
 
       syncEntityArraysToGameState();
+      pushRenderableSnapshot();
     }
 
     function parsePlayerMetaBinaryPacket(arrayBuffer) {
@@ -814,7 +843,9 @@
       if (view.byteLength < 4) {
         return;
       }
-      if (view.getUint8(0) !== PLAYER_META_PROTO_TYPE || view.getUint8(1) !== PLAYER_META_PROTO_VERSION) {
+      const packetType = view.getUint8(0);
+      const version = view.getUint8(1);
+      if (packetType !== PLAYER_META_PROTO_TYPE || (version !== PLAYER_META_PROTO_VERSION && version !== 1)) {
         return;
       }
 
@@ -822,26 +853,41 @@
       let offset = 4;
       const players = [];
       for (let index = 0; index < count; index += 1) {
-        if (offset + 3 > view.byteLength) {
+        const headerSize = version >= 2 ? 5 : 3;
+        if (offset + headerSize > view.byteLength) {
           break;
         }
         const id = view.getUint8(offset);
         const nameLen = view.getUint8(offset + 1);
         const classLen = view.getUint8(offset + 2);
-        offset += 3;
-        if (offset + nameLen + classLen > view.byteLength) {
+        const appearanceLen = version >= 2 ? view.getUint16(offset + 3, true) : 0;
+        offset += headerSize;
+        if (offset + nameLen + classLen + appearanceLen > view.byteLength) {
           break;
         }
         const name = textDecoder.decode(new Uint8Array(arrayBuffer, offset, nameLen)).trim() || `P${id}`;
         offset += nameLen;
         const classType = textDecoder.decode(new Uint8Array(arrayBuffer, offset, classLen)).trim() || getDefaultClassId();
         offset += classLen;
-        players.push({ id, name, classType });
+        let appearance = null;
+        if (appearanceLen > 0) {
+          const appearanceJson = textDecoder.decode(new Uint8Array(arrayBuffer, offset, appearanceLen)).trim();
+          offset += appearanceLen;
+          if (appearanceJson) {
+            try {
+              appearance = JSON.parse(appearanceJson);
+            } catch (_error) {
+              appearance = null;
+            }
+          }
+        }
+        players.push({ id, name, classType, appearance });
       }
 
       if (players.length) {
         applyPlayerMetaEntries(players);
         syncEntityArraysToGameState();
+        pushRenderableSnapshot();
       }
     }
 
@@ -885,6 +931,7 @@
       if (bags.length) {
         applyLootBagMetaEntries(bags);
         syncEntityArraysToGameState();
+        pushRenderableSnapshot();
       }
     }
 
@@ -934,24 +981,40 @@
         const flags = view.getUint8(offset + 2);
         offset += 3;
         const active = !!(flags & CAST_EVENT_FLAG_ACTIVE);
+        const isCharge = !!(flags & castEventFlagCharge);
+        
         if (active && offset + 8 > view.byteLength) {
           break;
         }
-        const target = active
-          ? {
-              id,
-              active: true,
-              abilityId: resolveAbilityIdHash(view.getUint32(offset, true)),
-              durationMs: view.getUint16(offset + 4, true),
-              elapsedMs: view.getUint16(offset + 6, true)
-            }
-          : { id, active: false };
+        
+        let target;
         if (active) {
+          target = {
+            id,
+            active: true,
+            abilityId: resolveAbilityIdHash(view.getUint32(offset, true)),
+            durationMs: view.getUint16(offset + 4, true),
+            elapsedMs: view.getUint16(offset + 6, true)
+          };
           offset += 8;
+          
+          if (isCharge && offset + 8 > view.byteLength) {
+            break;
+          }
+          if (isCharge) {
+            target.isCharge = true;
+            target.chargeStartX = dequantizePos(view.getUint16(offset, true));
+            target.chargeStartY = dequantizePos(view.getUint16(offset + 2, true));
+            target.chargeTargetX = dequantizePos(view.getUint16(offset + 4, true));
+            target.chargeTargetY = dequantizePos(view.getUint16(offset + 6, true));
+            offset += 8;
+          }
+        } else {
+          target = { id, active: false };
         }
 
         if (kind === CAST_EVENT_KIND_SELF) {
-          selfCast = active ? { active: true, abilityId: target.abilityId, durationMs: target.durationMs, elapsedMs: target.elapsedMs } : { active: false };
+          selfCast = active ? { active: true, abilityId: target.abilityId, durationMs: target.durationMs, elapsedMs: target.elapsedMs, isCharge: target.isCharge, chargeStartX: target.chargeStartX, chargeStartY: target.chargeStartY, chargeTargetX: target.chargeTargetX, chargeTargetY: target.chargeTargetY } : { active: false };
         } else if (kind === CAST_EVENT_KIND_MOB) {
           mobCasts.push(target);
         } else if (kind === CAST_EVENT_KIND_PLAYER) {
@@ -999,6 +1062,10 @@
           target.burningMs = view.getUint16(offset, true);
           target.burnDurationMs = view.getUint16(offset + 2, true);
           offset += 4;
+        }
+        if (flags & MOB_EFFECT_FLAG_BLOOD_WRATH) {
+          target.bloodWrathMs = view.getUint16(offset, true);
+          offset += 2;
         }
       }
 
@@ -1158,14 +1225,14 @@
       let offset = 4;
       const events = [];
       for (let i = 0; i < count; i += 1) {
-        if (offset + 6 > view.byteLength) {
+        if (offset + 7 > view.byteLength) {
           break;
         }
         const x = dequantizePos(view.getUint16(offset, true));
         const y = dequantizePos(view.getUint16(offset + 2, true));
-        const amount = view.getUint8(offset + 4);
-        const flags = view.getUint8(offset + 5);
-        offset += 6;
+        const amount = view.getUint16(offset + 4, true);
+        const flags = view.getUint8(offset + 6);
+        offset += 7;
         const decodedFlags = decodeDamageEventFlags(flags);
         events.push({
           x,
@@ -1197,7 +1264,7 @@
         parseMobEffectBinaryPacket(arrayBuffer);
         return;
       }
-      if (type === AREA_EFFECT_PROTO_TYPE) {
+      if (type === areaEffectProtoType) {
         parseAreaEffectBinaryPacket(arrayBuffer);
         return;
       }
@@ -1270,7 +1337,7 @@
     };
   }
 
-  globalScope.VibeClientNetworkPackets = Object.freeze({
+  globalScope.Open2dClientNetworkPackets = Object.freeze({
     createNetworkPacketParsers
   });
 })(globalThis);

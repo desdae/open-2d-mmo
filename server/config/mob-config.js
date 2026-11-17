@@ -13,16 +13,22 @@ function loadMobConfigFromDisk(configPath, itemDefs, abilityDefs, mapSize, serve
   const respawnMultiplier = serverConfig.mobRespawnMultiplier;
 
   const mobDefs = new Map();
+  function normalizeTags(values) {
+    return Array.isArray(values)
+      ? values.map((tag) => String(tag || "").trim().toLowerCase()).filter(Boolean)
+      : [];
+  }
+
   for (const mobEntry of Array.isArray(parsed.mobs) ? parsed.mobs : []) {
     const name = String(mobEntry?.name || "").trim();
     if (!name) {
       continue;
     }
 
-    const health = clamp(Math.round((Number(mobEntry.health) || 1) * healthMultiplier), 1, 255);
+    const health = clamp(Math.round((Number(mobEntry.health) || 1) * healthMultiplier), 1, 65535);
     const [damageMinRaw, damageMaxRaw] = parseNumericRange(mobEntry.damage, 1, 1);
-    const damageMin = clamp(Math.round(damageMinRaw * damageMultiplier), 0, 255);
-    const damageMax = clamp(Math.round(damageMaxRaw * damageMultiplier), damageMin, 255);
+    const damageMin = clamp(Math.round(damageMinRaw * damageMultiplier), 0, 65535);
+    const damageMax = clamp(Math.round(damageMaxRaw * damageMultiplier), damageMin, 65535);
     const baseSpeed = clamp(Number(mobEntry.speed) || 0.5, 0.05, 20);
     const [respawnMinRaw, respawnMaxRaw] = parseNumericRange(mobEntry.respawnTime, 30, 30);
     const respawnMinMs = Math.max(1000, Math.round(respawnMinRaw * 1000 * respawnMultiplier));
@@ -30,6 +36,22 @@ function loadMobConfigFromDisk(configPath, itemDefs, abilityDefs, mapSize, serve
     const dropRules = parseMobDropRules(mobEntry.drops, itemDefs);
     const renderStyle = parseMobRenderStyle(mobEntry.renderStyle);
     const combat = parseMobCombatConfig(mobEntry.combat, abilityDefs, damageMin, damageMax, combatDefaults);
+    const tags = normalizeTags(mobEntry.tags);
+    const skillRewards = Array.isArray(mobEntry.skillRewards)
+      ? mobEntry.skillRewards
+          .map((entry) => {
+            if (!entry || typeof entry !== "object") {
+              return null;
+            }
+            const skillId = String(entry.skillId || entry.id || "").trim().toLowerCase();
+            const xp = Math.max(0, Math.floor(Number(entry.xp) || 0));
+            if (!skillId || xp <= 0) {
+              return null;
+            }
+            return { skillId, xp };
+          })
+          .filter(Boolean)
+      : [];
 
     mobDefs.set(name, {
       name,
@@ -39,9 +61,11 @@ function loadMobConfigFromDisk(configPath, itemDefs, abilityDefs, mapSize, serve
       baseSpeed,
       respawnMinMs,
       respawnMaxMs,
+      tags,
       dropRules,
       renderStyle,
-      combat
+      combat,
+      skillRewards
     });
   }
 
@@ -114,6 +138,9 @@ function loadMobConfigFromDisk(configPath, itemDefs, abilityDefs, mapSize, serve
     const spawnRangeMin = Math.min(...spawnBands.map((band) => band.rangeMin));
     const spawnRangeMax = Math.max(...spawnBands.map((band) => band.rangeMax));
     const totalSpawnChance = spawnBands.reduce((sum, band) => sum + band.chance, 0);
+    const biomeTagsAny = normalizeTags(clusterEntry.biomeTagsAny);
+    const bandTagsAny = normalizeTags(clusterEntry.bandTagsAny);
+    const sectorTagsAny = normalizeTags(clusterEntry.sectorTagsAny);
 
     clusterDefs.push({
       name,
@@ -122,7 +149,10 @@ function loadMobConfigFromDisk(configPath, itemDefs, abilityDefs, mapSize, serve
       totalSpawnChance,
       maxSize,
       spawnRangeMin,
-      spawnRangeMax
+      spawnRangeMax,
+      biomeTagsAny,
+      bandTagsAny,
+      sectorTagsAny
     });
   }
 

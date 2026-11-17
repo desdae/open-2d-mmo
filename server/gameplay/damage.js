@@ -1,3 +1,11 @@
+"use strict";
+
+const {
+  BLOCK_DAMAGE_REDUCTION,
+  CRIT_BASE_MULTIPLIER,
+  MAX_BLOCK_CHANCE
+} = require("../../config/game-constants");
+
 function createDamageTools(options = {}) {
   const queueDamageEvent = typeof options.queueDamageEvent === "function" ? options.queueDamageEvent : () => {};
   const markMobProvokedByPlayer =
@@ -7,8 +15,16 @@ function createDamageTools(options = {}) {
   const clearPlayerCombatEffects =
     typeof options.clearPlayerCombatEffects === "function" ? options.clearPlayerCombatEffects : () => {};
   const getPlayerById = typeof options.getPlayerById === "function" ? options.getPlayerById : () => null;
+  const normalizeId = typeof options.normalizeId === "function" ? options.normalizeId : (id) => id == null ? null : String(id);
   const clamp =
     typeof options.clamp === "function" ? options.clamp : (value, min, max) => Math.max(min, Math.min(max, value));
+
+  const tools = {
+    // These callbacks are intentionally mutable; server.js wires the real talent handlers after all systems are created.
+    onTalentSpellHit: typeof options.onTalentSpellHit === "function" ? options.onTalentSpellHit : null,
+    onTalentKill: typeof options.onTalentKill === "function" ? options.onTalentKill : null,
+    onTalentDamageDealt: typeof options.onTalentDamageDealt === "function" ? options.onTalentDamageDealt : null
+  };
 
   function rollLeechAmount(baseAmount, percent) {
     const amount = Math.max(0, Number(baseAmount) || 0);
@@ -28,11 +44,15 @@ function createDamageTools(options = {}) {
       return 0;
     }
 
-    const ownerPlayer = ownerId ? getPlayerById(String(ownerId)) : null;
+    const normalizedOwnerId = normalizeId(ownerId);
+    const ownerPlayer = normalizedOwnerId ? getPlayerById(normalizedOwnerId) : null;
     if (ownerPlayer && extra.allowCrit !== false) {
       const critChance = clamp(Number(ownerPlayer.critChance) || 0, 0, 100);
       if (critChance > 0 && Math.random() * 100 < critChance) {
-        const critMultiplier = Math.max(1, 1.5 + Math.max(0, Number(ownerPlayer.critDamage) || 0) / 100);
+        const critMultiplier = Math.max(
+          1,
+          CRIT_BASE_MULTIPLIER + Math.max(0, Number(ownerPlayer.critDamage) || 0) / 100
+        );
         dmg = Math.max(1, Math.round(dmg * critMultiplier));
       }
     }
@@ -43,6 +63,15 @@ function createDamageTools(options = {}) {
     if (dealt > 0) {
       queueDamageEvent(mob, dealt, "mob", ownerId);
       markMobProvokedByPlayer(mob, ownerId);
+      
+      // Trigger talent effects on damage dealt
+      if (ownerPlayer) {
+        const handler = typeof tools.onTalentDamageDealt === "function" ? tools.onTalentDamageDealt : null;
+        if (handler) {
+          handler(ownerPlayer, mob, dealt);
+        }
+      }
+      
       if (ownerPlayer && extra.allowLeech !== false) {
         const healAmount = rollLeechAmount(dealt, ownerPlayer.lifeSteal);
         if (healAmount > 0) {
@@ -56,6 +85,13 @@ function createDamageTools(options = {}) {
     }
     if (mob.hp <= 0) {
       killMob(mob, ownerId);
+      // Trigger talent on-kill effects
+      if (ownerPlayer) {
+        const handler = typeof tools.onTalentKill === "function" ? tools.onTalentKill : null;
+        if (handler) {
+          handler(ownerPlayer, mob);
+        }
+      }
     }
     return dealt;
   }
@@ -76,9 +112,9 @@ function createDamageTools(options = {}) {
       return 0;
     }
 
-    const blockChance = clamp(Number(player.blockChance) || 0, 0, 0.75);
+    const blockChance = clamp(Number(player.blockChance) || 0, 0, MAX_BLOCK_CHANCE);
     if (blockChance > 0 && Math.random() < blockChance) {
-      dmg = Math.max(0, Math.floor(dmg * 0.5));
+      dmg = Math.max(0, Math.floor(dmg * BLOCK_DAMAGE_REDUCTION));
     }
     const armor = Math.max(0, Number(player.armor) || 0);
     if (armor > 0) {
@@ -111,11 +147,11 @@ function createDamageTools(options = {}) {
     return dealt;
   }
 
-  return {
-    applyDamageToMob,
-    isPlayerInvulnerable,
-    applyDamageToPlayer
-  };
+  tools.applyDamageToMob = applyDamageToMob;
+  tools.isPlayerInvulnerable = isPlayerInvulnerable;
+  tools.applyDamageToPlayer = applyDamageToPlayer;
+
+  return tools;
 }
 
 module.exports = {
